@@ -68,7 +68,11 @@ ember test
 
 ## Deployment
 
-Add additional notes about how to deploy this on a live system
+Performs steps described in [Deployment-on-S3](../../wiki/Deployment-on-S3) prior to deploying.
+
+```
+ember deploy production
+```
 
 ## Built With
 
