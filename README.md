@@ -101,7 +101,9 @@ Add additional notes about how to deploy this on a live system
 * [Ember](https://www.emberjs.com)
 * [ember-cli-bootstrap-4](https://github.com/kaermorchen/ember-cli-bootstrap-4)
 * [emberx-select](https://github.com/thefrontside/emberx-select)
+* [ember-cli-deploy](http://ember-cli-deploy.com)
 * [ember-cli-deploy-aws-pack](https://github.com/kpfefferle/ember-cli-deploy-aws-pack)
+* [ember-cli-dotenv](https://github.com/fivetanley/ember-cli-dotenv)
 * [ember-auto-import](https://github.com/ef4/ember-auto-import)
 * [aws-sdk](https://www.npmjs.com/package/aws-sdk)
 
@@ -127,4 +129,3 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 * [Interactive Analysis of Genomic Datasets Using Amazon Athena](https://aws.amazon.com/blogs/big-data/interactive-analysis-of-genomic-datasets-using-amazon-athena/)
 * [Deploying Ember to AWS CloudFront](http://blog.testdouble.com/posts/2015-11-03-deploying-ember-to-aws-cloudfront-using-ember-cli-deploy)
-* [How to Deploy an Ember CLI app to Amazon S3](https://emberigniter.com/deploy-ember-cli-app-amazon-s3-linux-ssh-rsync/)
