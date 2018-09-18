@@ -105,5 +105,5 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ## Acknowledgments
 
-* [Interactive Analysis of Genomic Datasets Using Amazon Athena](https://aws.amazon.com/blogs/big-data/interactive-analysis-of-genomic-datasets-using-amazon-athena/)
-* [Deploying Ember to AWS CloudFront](http://blog.testdouble.com/posts/2015-11-03-deploying-ember-to-aws-cloudfront-using-ember-cli-deploy)
+* Aaron Friedman - ["Interactive Analysis of Genomic Datasets Using Amazon Athena"](https://aws.amazon.com/blogs/big-data/interactive-analysis-of-genomic-datasets-using-amazon-athena/)
+* [Kevin Pfefferle](http://twitter.com/kpfefferle) - ["Deploying Ember to AWS CloudFront"](http://blog.testdouble.com/posts/2015-11-03-deploying-ember-to-aws-cloudfront-using-ember-cli-deploy)
