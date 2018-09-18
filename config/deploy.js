@@ -10,7 +10,7 @@ module.exports = function(deployTarget) {
       // To disable CloudFront invalidation, remove this setting or change it to `false`.
       // To disable ember-cli-deploy-cloudfront for only a particular environment, add
       // `ENV.pipeline.activateOnDeploy = false` to an environment conditional below.
-      activateOnDeploy: true
+      activateOnDeploy: false
     },
     s3: {
       accessKeyId: process.env.AWS_KEY,
