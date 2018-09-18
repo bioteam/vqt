@@ -1,1 +1,64 @@
-{{outlet}}
+<nav class="navbar navbar-dark bg-primary">
+  <a class="navbar-brand" href="https://github.com/bioteam/vqt" target="_blank" rel="noopener">Variant Query Tool</a>
+  <a class="btn btn-primary" data-toggle="collapse" href="#collapseSql" aria-expanded="false" aria-controls="collapseSql">Toggle SQL</a>
+</nav>
+
+<div class="container-fluid query-form">
+
+  <form {{action "query" model.query on="submit"}}>
+
+    <div class="form-group row">
+      <div class="col-12">
+        <label for="samples">Samples</label>
+        {{input type="text" id="samples" value=model.samples class="form-control" placeholder="NA18981, NA20767, NA12760"}}
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="form-group col-4">
+        <label for="variant">Variant</label>
+        {{input type="text" id="variant" value=model.variant class="form-control" placeholder="22-42457042-42457043-C-T"}}
+      </div>
+      <div class="form-group col-4">
+        <label for="genes">Genes</label>
+        {{input type="text" id="genes" value=model.genes class="form-control" placeholder="NAGA"}}
+      </div>
+      <div class="form-group col-4">
+        <label for="rsid">dbSNP</label>
+        {{input type="text" id="rsid" value=model.rsid class="form-control" placeholder="121434533"}}
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="form-group col-4">
+        <label for="frequency">Frequency</label>
+        {{input type="text" id="frequency" value=model.frequency class="form-control" placeholder="0.01"}}
+      </div>
+      <div class="form-group col-4">
+        <label for="zygosity">Zygosity</label>
+        {{#x-select id="zygosity" value=model.zygosity class="form-control" action="selectZygosity" as |xs|}}
+          <option>Any</option>
+          {{#xs.option value="homozygous"}}homozygous{{/xs.option}}
+          {{#xs.option value="heterozygous"}}heterozygous{{/xs.option}}
+        {{/x-select}}
+      </div>
+      <div class="form-group col-4">
+        <label for="pathogenicity">Pathogenicity</label>
+        {{input type="checkbox" id="pathogenicity" class="form-control" checked=model.pathogenicity}} Pathogenic
+      </div>
+    </div>
+
+    <div class="row form-group collapse" id="collapseSql">
+      <div class="col-12">
+        <label>SQL</label>
+        <div class="card card-block">
+          {{model.query}}
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-primary" type="submit">Query</button>
+
+  </form>
+</div>
+<div class="container-fluid" id="query-results">
+</div>
