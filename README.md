@@ -44,32 +44,6 @@ brew install git node watchman
 npm install -g ember-cli
 ```
 
-The following are current versions of the prerequisites I am using.
-
-```
-brew -v
-Homebrew 1.7.4
-Homebrew/homebrew-core (git revision 72bd; last commit 2018-09-12)
-```
-```
-git --version
-git version 2.15.2 (Apple Git-101.1)
-```
-```
-node -v
-v10.10.0
-```
-```
-watchman -v
-4.9.0
-```
-```
-ember -v
-ember-cli: 3.4.2
-node: 10.10.0
-os: darwin x64
-```
-
 ## Installation
 
 * `git clone https://github.com/bioteam/vqt.git`
