@@ -1,12 +1,13 @@
 # vqt (Variant Query Tool)
 vqt is a server-less, client-side javascript application that provides a Web UI for querying variants stored on [AWS](https://aws.amazon.com) [S3](https://aws.amazon.com/s3/).
+
 Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 ![Serverless](https://raw.githubusercontent.com/bioteam/vqt/assets/serverless.png)
 * Developed using the [Ember](https://www.emberjs.com) framework
 * Served from a [static S3 website](https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html)
 * Queries data through AWS APIs ([Cognito](https://aws.amazon.com/cognito/), [Lambda](https://aws.amazon.com/lambda/), [Athena](https://aws.amazon.com/athena/), [S3](https://aws.amazon.com/s3/))
 ## Getting Started
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See [deployment](#deployment) for notes on how to deploy the project on [S3](https://aws.amazon.com/s3/).
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See [Deployment](#deployment) for notes on how to deploy the project on [S3](https://aws.amazon.com/s3/).
 ### Developer Prerequisites
 You will need the following software to run the project on your local machine for development and testing purposes. [Homebrew](https://git-scm.com/) makes it easy to install [Git](https://git-scm.com/), [Watchman](https://facebook.github.io/watchman/), and [Node.js](https://nodejs.org/). And [Node.js](https://nodejs.org/) makes it easy to install [Ember CLI](https://ember-cli.com/).
 * [Homebrew](https://git-scm.com/)
@@ -29,12 +30,16 @@ brew install git node watchman
 npm install -g ember-cli
 ```
 ## AWS Prerequisites
-* [AWS account](https://aws.amazon.com)
-
+* [AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/)
+* [Configure Deployment on S3](../../wiki/Configure-Deployment-on-S3)
+* [Configure Athena](../../wiki/Configure-Athena)
+* [Configure Cognito, IAM, and Lambda](../../wiki/Configure-Cognito,-IAM,-and-Lambda)
 ## Installation
 * `git clone https://github.com/bioteam/vqt.git`
 * `cd vqt`
 * `npm install`
+* `cp .template.env .env`
+* populate .env with values from [AWS Prerequisites](#aws-prerequisites)
 * `ember server`
 * `open http://localhost:4200`
 
@@ -48,7 +53,6 @@ open http://localhost:4200/tests
 ember test
 ```
 ## Deployment
-Performs steps described in [Deployment-on-S3](../../wiki/Deployment-on-S3) prior to deploying.
 ```
 ember deploy production
 ```
