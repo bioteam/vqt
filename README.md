@@ -29,11 +29,6 @@ brew install git node watchman
 ```
 npm install -g ember-cli
 ```
-## AWS Prerequisites
-* [AWS account](https://aws.amazon.com/premiumsupport/knowledge-center/create-and-activate-aws-account/)
-* [Configure Deployment on S3](../../wiki/Configure-Deployment-on-S3)
-* [Configure Athena](../../wiki/Configure-Athena)
-* [Configure Cognito, IAM, and Lambda](../../wiki/Configure-Cognito,-IAM,-and-Lambda)
 ## Installation
 * `git clone https://github.com/bioteam/vqt.git`
 * `cd vqt`
@@ -61,7 +56,7 @@ ember deploy production
 * [ember-cli-bootstrap-4](https://github.com/kaermorchen/ember-cli-bootstrap-4)
 * [emberx-select](https://github.com/thefrontside/emberx-select)
 * [ember-cli-deploy](http://ember-cli-deploy.com)
-* [ember-cli-deploy-aws-pack](https://github.com/kpfefferle/ember-cli-deploy-aws-pack)
+* [ember-cli-deploy-cloudformation](https://github.com/kaliber5/ember-cli-deploy-cloudformation)
 * [ember-cli-dotenv](https://github.com/fivetanley/ember-cli-dotenv)
 * [ember-auto-import](https://github.com/ef4/ember-auto-import)
 * [aws-sdk](https://www.npmjs.com/package/aws-sdk)
@@ -77,3 +72,4 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 ## Acknowledgments
 * Aaron Friedman - ["Interactive Analysis of Genomic Datasets Using Amazon Athena"](https://aws.amazon.com/blogs/big-data/interactive-analysis-of-genomic-datasets-using-amazon-athena/)
 * [Kevin Pfefferle](http://twitter.com/kpfefferle) - ["Deploying Ember to AWS CloudFront"](http://blog.testdouble.com/posts/2015-11-03-deploying-ember-to-aws-cloudfront-using-ember-cli-deploy)
+* [singledigit/cognito.yaml](https://gist.githubusercontent.com/singledigit/2c4d7232fa96d9e98a3de89cf6ebe7a5/raw/c4d06b6ca946973818c1e10dbf5ce4541bdf711d/cognito.yaml)

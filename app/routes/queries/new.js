@@ -14,7 +14,7 @@ export default Route.extend({
       AWS.config.credentials = new AWS.CognitoIdentityCredentials({
         IdentityPoolId: ENV.APP.identityPoolId
       });
-      AWS.config.update({region: ENV.APP.lambdaRegion});
+      AWS.config.update({region: 'us-east-1'});
 
       AWS.config.credentials.get(function(err) {
         if (err) {
@@ -23,8 +23,8 @@ export default Route.extend({
           return;
         }
         var lambda = new AWS.Lambda({
-          region: ENV.APP.lambdaRegion,
-          apiVersion: ENV.APP.lambdaApi
+          region: 'us-east-1',
+          apiVersion: '2017-05-18'
         });
         // var query = "SELECT sv.sampleid, sv.chromosome, sv.startposition, sv.endposition, sv.referenceallele, sv.alternateallele, sv.genotype0, sv.genotype1, count(*)/cast(numsamples AS DOUBLE) AS genotypefrequency, cv.rsid, cv.genesymbol, cv.clinicalsignificance, cv.phenotypelist FROM variants sv CROSS JOIN (SELECT count(1) AS numsamples FROM (SELECT DISTINCT sampleid FROM variants WHERE sampleid LIKE 'NA12%')) JOIN annotations cv ON sv.chromosome = cv.chromosome AND sv.startposition = cv.startposition - 1 AND sv.endposition = cv.endposition AND sv.referenceallele = cv.referenceallele AND sv.alternateallele = cv.alternateallele WHERE assembly='GRCh37' AND cv.clinicalsignificance LIKE '%Pathogenic%' AND sampleid LIKE 'NA12%' GROUP BY  sv.sampleid, sv.chromosome, sv.startposition, sv.endposition, sv.referenceallele, sv.alternateallele, sv.genotype0, sv.genotype1, cv.clinicalsignificance, cv.genesymbol, cv.phenotypelist, cv.rsid, numsamples ORDER BY  genotypefrequency DESC LIMIT 50"
         lambda.invoke({

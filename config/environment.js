@@ -20,10 +20,7 @@ module.exports = function(environment) {
     APP: {
       // Here you can pass flags/options to your application instance
       // when it is created
-      identityPoolId: process.env.IDENTITY_POOL_ID,
-      lambdaRegion: process.env.LAMBDA_REGION,
-      lambdaApi: process.env.LAMBDA_API,
-      lambdaFunction: process.env.LAMBDA_FUNCTION
+      identityPoolId: process.env.IDENTITY_POOL_ID
     }
   };
 

@@ -7,6 +7,9 @@ Parameters:
   CFCertificate:
     Description: 'Existing ACM Certificate ARN for CloudFront. Must be created in the us-east-1 region!'
     Type: String
+  StackName:
+    Description: 'Name of CloudFormation stack, e.g. vqt-production'
+    Type: String
   ForceHttps:
     Type: String
     Description: Force HTTPS by redirecting HTTP requests
@@ -14,10 +17,373 @@ Parameters:
     AllowedValues:
       - 0
       - 1
-
+  AnnotationsBucket:
+    Description: 'S3 Bucket containing Annotations. Must be readable by Athena!'
+    Type: String
+    Default: 's3://vqt.annotations/'
+  VariantsBucket:
+    Description: 'S3 Bucket containing Variants. Must be readable by Athena!'
+    Type: String
+    Default: 's3://aws-bigdata-blog/artifacts/athena_genomics.parquet'
+  FrequenciesBucket:
+    Description: 'S3 Bucket containing Frquencies. Must be readable by Athena!'
+    Type: String
+    Default: 's3://vqt.frequencies/'
 Conditions:
   HasForceHttps: !Equals [ !Ref ForceHttps, '1' ]
 Resources:
+  # Create an Identity Pool for authorited/unauthorized users
+  IdentityPool:
+    Type: 'AWS::Cognito::IdentityPool'
+    Properties:
+      IdentityPoolName: vqtIdentityPool
+      AllowUnauthenticatedIdentities: true
+  # Create a role for users authorized by Cognito
+  CognitoAuthorizedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: 
+              Federated: "cognito-identity.amazonaws.com"
+            Action: 
+              - "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              StringEquals: 
+                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": authenticated
+      Policies:
+        - PolicyName: "CognitoAuthorizedPolicy"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                  - "cognito-sync:*"
+                  - "cognito-identity:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+  # Presently authorized and unauthorized are configured the same.
+  # At some point will limit unauthorized actions.
+  #
+  # CognitoUnAuthorizedRole:
+  #   Type: "AWS::IAM::Role"
+  #   Properties:
+  #     AssumeRolePolicyDocument: 
+  #       Version: "2012-10-17"
+  #       Statement:
+  #         - Effect: "Allow"
+  #           Principal: 
+  #             Federated: "cognito-identity.amazonaws.com"
+  #           Action: 
+  #             - "sts:AssumeRoleWithWebIdentity"
+  #           Condition:
+  #             StringEquals: 
+  #               "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
+  #             "ForAnyValue:StringLike":
+  #               "cognito-identity.amazonaws.com:amr": unauthenticated
+  #     Policies:
+  #       - PolicyName: "CognitoUnauthorizedPolicy"
+  #         PolicyDocument: 
+  #           Version: "2012-10-17"
+  #           Statement: 
+  #             - Effect: "Allow"
+  #               Action:
+  #                 - "mobileanalytics:PutEvents"
+  #                 - "cognito-sync:*"
+  #               Resource: "*"
+  # Create a role for users unauthorized by Cognito
+  CognitoUnAuthorizedRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: 
+              Federated: "cognito-identity.amazonaws.com"
+            Action: 
+              - "sts:AssumeRoleWithWebIdentity"
+            Condition:
+              StringEquals: 
+                "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
+              "ForAnyValue:StringLike":
+                "cognito-identity.amazonaws.com:amr": unauthenticated
+      Policies:
+        - PolicyName: "CognitoUnauthorizedPolicy"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - Effect: "Allow"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                  - "cognito-sync:*"
+                  - "cognito-identity:*"
+                Resource: "*"
+              - Effect: "Allow"
+                Action:
+                  - "lambda:InvokeFunction"
+                Resource: "*"
+  # Assign authorized/unauthorized roles to the Identity Pool
+  IdentityPoolRoleMapping:
+    Type: "AWS::Cognito::IdentityPoolRoleAttachment"
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:
+        authenticated: !GetAtt CognitoAuthorizedRole.Arn
+        unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
+  # Create a role for executing athena through lambda
+  LambdaRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+  # Create a lambda function executable by the lambda role
+  LambdaFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      Description: Lamda function for Athena queries.
+      FunctionName: !Sub "${StackName}-lambda-function"
+      Handler: "index.handler"
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: "nodejs6.10"
+      Timeout: 15
+      Code:
+        ZipFile: !Sub >
+          var AWS = require('aws-sdk');
+          var athena = new AWS.Athena({
+              region: 'us-east-1',
+              apiVersion: '2017-05-18'
+          });
+
+          var MAX_RETRIES = 20;
+          var POLLING_INTERVAL = 1000;
+          var RESOLVE_STATES = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
+
+          function startQueryExecution(params) {
+            return new Promise(function(resolve, reject){
+              athena.startQueryExecution(params, function(err, data) {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(data);
+                }
+              });
+            });
+          }
+
+          function getQueryResults(queryId) {
+            var params = {
+              QueryExecutionId: queryId, /* required */
+              // MaxResults: 0,
+              // NextToken: 'STRING_VALUE'
+            };
+
+            return new Promise(function(resolve, reject) {
+              athena.getQueryResults(params, function(err, data) {
+                if (err) {
+                  reject(err);
+                } else {
+                  resolve(data);
+                }
+              });
+            });
+          }
+
+          function pollForChanges(queryId) {
+            var numTries = 0;
+            var params = {
+              QueryExecutionId: queryId, /* required */
+              // MaxResults: 0,
+              // NextToken: 'STRING_VALUE'
+            };
+
+            return new Promise(function(resolve, reject) {
+              var myInterval = setInterval(function(){
+                numTries ++;
+                if (numTries > MAX_RETRIES) {
+                  clearInterval(myInterval);
+                  reject(new Error('MAX_RETRIES exceeded.'));
+                  return;
+                }
+
+                athena.getQueryExecution(params, function(err, data) {
+                  if (err) {
+                    clearInterval(myInterval);
+                    reject(err);
+                  } else {
+                    var state = data.QueryExecution.Status.State;
+                    // This means state is a member of RESOLVE_STATES
+                    if (~RESOLVE_STATES.indexOf(state)) {
+                      clearInterval(myInterval);
+                      if (state === 'SUCCEEDED') {
+                          resolve(state);
+                      } else {
+                          reject(new Error('State ' + state + ' is NO GOOD.'));
+                      }
+                    }
+                  }
+                });
+              }, POLLING_INTERVAL);
+            });
+          }
+
+          exports.handler = function(event, context) {
+             // var query = "SELECT sv.sampleid, sv.chromosome, sv.startposition, sv.endposition, sv.referenceallele, sv.alternateallele, sv.genotype0, sv.genotype1, count(*)/cast(numsamples AS DOUBLE) AS genotypefrequency, cv.rsid, cv.genesymbol, cv.clinicalsignificance, cv.phenotypelist FROM variants sv CROSS JOIN (SELECT count(1) AS numsamples FROM (SELECT DISTINCT sampleid FROM variants WHERE sampleid LIKE 'NA12%')) JOIN annotations cv ON sv.chromosome = cv.chromosome AND sv.startposition = cv.startposition - 1 AND sv.endposition = cv.endposition AND sv.referenceallele = cv.referenceallele AND sv.alternateallele = cv.alternateallele WHERE assembly='GRCh37' AND cv.clinicalsignificance LIKE '%Pathogenic%' AND sampleid LIKE 'NA12%' GROUP BY  sv.sampleid, sv.chromosome, sv.startposition, sv.endposition, sv.referenceallele, sv.alternateallele, sv.genotype0, sv.genotype1, cv.clinicalsignificance, cv.genesymbol, cv.phenotypelist, cv.rsid, numsamples ORDER BY  genotypefrequency DESC LIMIT 50"
+            var params = {
+              // QueryString: query,
+              QueryString: event.query,
+              ResultConfiguration: {
+                OutputLocation: 's3://aws-athena-query-results-${StackName}',
+                EncryptionConfiguration: {
+                  EncryptionOption: 'SSE_S3'
+                }
+              },
+              QueryExecutionContext: {
+                Database: '${StackName}'
+              }
+            };
+            var queryId;
+            startQueryExecution(params)
+            .then(function(data) {
+              queryId = data.QueryExecutionId;
+              return pollForChanges(queryId);
+            })
+            .then(function(state) {
+              return getQueryResults(queryId);
+            })
+            .then(function(data){
+              console.log('Results are ...');
+              context.succeed(data);
+            })
+            .catch(function(err) {
+              console.log(err, err.stack);
+            });
+          };
+  # Create a database for athena tables
+  AthenaDatabase:
+    Type: 'AWS::Glue::Database'
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Ref StackName
+        Description: "Athena Database"
+  AnnotationsTableQuery:
+    Type: 'AWS::Athena::NamedQuery'
+    Properties:
+      Name: "annotations"
+      Database: !Ref StackName
+      Description: "Annotations Table Create Statement"
+      QueryString: !Sub >
+                    CREATE EXTERNAL TABLE `annotations`(
+                      `alleleid` string, 
+                      `varianttype` string, 
+                      `hgvsname` string, 
+                      `geneid` string, 
+                      `genesymbol` string, 
+                      `hgncid` string, 
+                      `clinicalsignificance` string, 
+                      `clinsigsimple` string, 
+                      `lastevaluated` string, 
+                      `rsid` string, 
+                      `dbvarid` string, 
+                      `rcvaccession` string, 
+                      `phenotypeids` string, 
+                      `phenotypelist` string, 
+                      `origin` string, 
+                      `originsimple` string, 
+                      `assembly` string, 
+                      `chromosomeaccession` string, 
+                      `chromosome` string, 
+                      `startposition` int, 
+                      `endposition` int, 
+                      `referenceallele` string, 
+                      `alternateallele` string, 
+                      `cytogenetic` string, 
+                      `reviewstatus` string, 
+                      `numbersubmitters` string, 
+                      `guidelines` string, 
+                      `testedingtr` string, 
+                      `otherids` string, 
+                      `submittercategories` string)
+                    ROW FORMAT DELIMITED 
+                      FIELDS TERMINATED BY '\t' 
+                    STORED AS INPUTFORMAT 
+                      'org.apache.hadoop.mapred.TextInputFormat' 
+                    OUTPUTFORMAT 
+                      'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+                    LOCATION
+                      '${AnnotationsBucket}'
+                    TBLPROPERTIES (
+                      'transient_lastDdlTime'='1492716849')
+  VariantsTableQuery:
+    Type: 'AWS::Athena::NamedQuery'
+    Properties:
+      Name: "variants"
+      Database: !Ref StackName
+      Description: "Variants Table Create Statement"
+      QueryString: !Sub >
+                        CREATE EXTERNAL TABLE `variants`(
+                          `alternateallele` string, 
+                          `chromosome` string, 
+                          `endposition` bigint, 
+                          `genotype0` string, 
+                          `genotype1` string, 
+                          `referenceallele` string, 
+                          `sampleid` string, 
+                          `startposition` bigint)
+                        ROW FORMAT SERDE 
+                          'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' 
+                        STORED AS INPUTFORMAT 
+                          'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat' 
+                        OUTPUTFORMAT 
+                          'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
+                        LOCATION
+                          '${VariantsBucket}'
+                        TBLPROPERTIES (
+                          'transient_lastDdlTime'='1492716302')
+  FrequenciesTableQuery:
+    Type: 'AWS::Athena::NamedQuery'
+    Properties:
+      Name: "frequencies"
+      Database: !Ref StackName
+      Description: "Variant Frequencies Table Create Statement"
+      QueryString: !Sub >
+                        CREATE EXTERNAL TABLE `variant_frequencies`(
+                          `chromosome` string, 
+                          `startposition` bigint, 
+                          `endposition` bigint, 
+                          `referenceallele` string, 
+                          `alternateallele` string, 
+                          `frequency` double)
+                        ROW FORMAT DELIMITED 
+                          FIELDS TERMINATED BY ',' 
+                        STORED AS INPUTFORMAT 
+                          'org.apache.hadoop.mapred.TextInputFormat' 
+                        OUTPUTFORMAT 
+                          'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+                        LOCATION
+                          '${FrequenciesBucket}'
+                        TBLPROPERTIES (
+                          'has_encrypted_data'='false', 
+                          'transient_lastDdlTime'='1497466594')
   AssetsBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -79,3 +445,5 @@ Outputs:
     Value: !Ref AssetsCDN
   CloudFrontDomainName:
     Value: !GetAtt 'AssetsCDN.DomainName'
+  IdentityPoolId:
+    Value: !Ref IdentityPool
