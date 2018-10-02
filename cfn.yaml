@@ -139,6 +139,11 @@ Resources:
       Roles:
         authenticated: !GetAtt CognitoAuthorizedRole.Arn
         unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
+  # Create an S3 bucket for athena query results
+  ResultsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "aws-athena-query-results-${StackName}"
   # Create a role for executing athena through lambda
   LambdaRole:
     Type: "AWS::IAM::Role"
@@ -154,17 +159,17 @@ Resources:
               - "sts:AssumeRole"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
-        - arn:aws:iam::aws:policy/service-role/AWSLambdaRole
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
   # Create a lambda function executable by the lambda role
   LambdaFunction:
     Type: "AWS::Lambda::Function"
     Properties:
-      Description: Lamda function for Athena queries.
+      Description: Lambda function for Athena queries.
       FunctionName: !Sub "${StackName}-lambda-function"
       Handler: "index.handler"
       Role: !GetAtt LambdaRole.Arn
       Runtime: "nodejs6.10"
-      Timeout: 15
+      Timeout: 30
       Code:
         ZipFile: !Sub >
           var AWS = require('aws-sdk');
@@ -285,6 +290,52 @@ Resources:
       DatabaseInput:
         Name: !Ref StackName
         Description: "Athena Database"
+  # AnnotationsTable:
+  #   Type: Custom::LambdaCallout
+  #   Properties:
+  #     ServiceToken: !GetAtt 'LambdaFunction.Arn'
+  #     query: !Sub >
+  #                 CREATE EXTERNAL TABLE `annotations`(
+  #                   `alleleid` string, 
+  #                   `varianttype` string, 
+  #                   `hgvsname` string, 
+  #                   `geneid` string, 
+  #                   `genesymbol` string, 
+  #                   `hgncid` string, 
+  #                   `clinicalsignificance` string, 
+  #                   `clinsigsimple` string, 
+  #                   `lastevaluated` string, 
+  #                   `rsid` string, 
+  #                   `dbvarid` string, 
+  #                   `rcvaccession` string, 
+  #                   `phenotypeids` string, 
+  #                   `phenotypelist` string, 
+  #                   `origin` string, 
+  #                   `originsimple` string, 
+  #                   `assembly` string, 
+  #                   `chromosomeaccession` string, 
+  #                   `chromosome` string, 
+  #                   `startposition` int, 
+  #                   `endposition` int, 
+  #                   `referenceallele` string, 
+  #                   `alternateallele` string, 
+  #                   `cytogenetic` string, 
+  #                   `reviewstatus` string, 
+  #                   `numbersubmitters` string, 
+  #                   `guidelines` string, 
+  #                   `testedingtr` string, 
+  #                   `otherids` string, 
+  #                   `submittercategories` string)
+  #                 ROW FORMAT DELIMITED 
+  #                   FIELDS TERMINATED BY '\t' 
+  #                 STORED AS INPUTFORMAT 
+  #                   'org.apache.hadoop.mapred.TextInputFormat' 
+  #                 OUTPUTFORMAT 
+  #                   'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+  #                 LOCATION
+  #                   '${AnnotationsBucket}'
+  #                 TBLPROPERTIES (
+  #                   'transient_lastDdlTime'='1492716849')      
   AnnotationsTableQuery:
     Type: 'AWS::Athena::NamedQuery'
     Properties:

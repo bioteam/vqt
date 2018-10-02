@@ -23,9 +23,6 @@ module.exports = function(deployTarget) {
       stackName: `${require('../package.json').name}-${deployTarget}`,
       templateBody: 'file://cfn.yaml',
       capabilities: ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
-      poolId(context) {
-        return context.IdentityPoolId;
-      },
       parameters: {
         DomainName: process.env.CFN_DOMAINNAME,
         CFCertificate: process.env.CFN_CFCERTIFICATE,

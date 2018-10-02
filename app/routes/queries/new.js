@@ -28,7 +28,7 @@ export default Route.extend({
         });
         // var query = "SELECT sv.sampleid, sv.chromosome, sv.startposition, sv.endposition, sv.referenceallele, sv.alternateallele, sv.genotype0, sv.genotype1, count(*)/cast(numsamples AS DOUBLE) AS genotypefrequency, cv.rsid, cv.genesymbol, cv.clinicalsignificance, cv.phenotypelist FROM variants sv CROSS JOIN (SELECT count(1) AS numsamples FROM (SELECT DISTINCT sampleid FROM variants WHERE sampleid LIKE 'NA12%')) JOIN annotations cv ON sv.chromosome = cv.chromosome AND sv.startposition = cv.startposition - 1 AND sv.endposition = cv.endposition AND sv.referenceallele = cv.referenceallele AND sv.alternateallele = cv.alternateallele WHERE assembly='GRCh37' AND cv.clinicalsignificance LIKE '%Pathogenic%' AND sampleid LIKE 'NA12%' GROUP BY  sv.sampleid, sv.chromosome, sv.startposition, sv.endposition, sv.referenceallele, sv.alternateallele, sv.genotype0, sv.genotype1, cv.clinicalsignificance, cv.genesymbol, cv.phenotypelist, cv.rsid, numsamples ORDER BY  genotypefrequency DESC LIMIT 50"
         lambda.invoke({
-          FunctionName : ENV.APP.lambdaFunction,
+          FunctionName : 'vqt-production-lambda-function',
           InvocationType : 'RequestResponse',
           LogType : 'None',
           Payload : JSON.stringify({query: sql})
