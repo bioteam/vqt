@@ -139,6 +139,14 @@ Resources:
       Roles:
         authenticated: !GetAtt CognitoAuthorizedRole.Arn
         unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
+  # Create a database for athena tables
+  AthenaDatabase:
+    Type: 'AWS::Glue::Database'
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: !Ref StackName
+        Description: "Athena Database"
   # Create an S3 bucket for athena query results
   ResultsBucket:
     Type: AWS::S3::Bucket
@@ -282,60 +290,90 @@ Resources:
               console.log(err, err.stack);
             });
           };
-  # Create a database for athena tables
-  AthenaDatabase:
-    Type: 'AWS::Glue::Database'
+  # Lambda function for the creation of Athena tables
+  CreateTableLambdaFunction:
+    Type: AWS::Lambda::Function
     Properties:
-      CatalogId: !Ref AWS::AccountId
-      DatabaseInput:
-        Name: !Ref StackName
-        Description: "Athena Database"
-  # AnnotationsTable:
-  #   Type: Custom::LambdaCallout
-  #   Properties:
-  #     ServiceToken: !GetAtt 'LambdaFunction.Arn'
-  #     query: !Sub >
-  #                 CREATE EXTERNAL TABLE `annotations`(
-  #                   `alleleid` string, 
-  #                   `varianttype` string, 
-  #                   `hgvsname` string, 
-  #                   `geneid` string, 
-  #                   `genesymbol` string, 
-  #                   `hgncid` string, 
-  #                   `clinicalsignificance` string, 
-  #                   `clinsigsimple` string, 
-  #                   `lastevaluated` string, 
-  #                   `rsid` string, 
-  #                   `dbvarid` string, 
-  #                   `rcvaccession` string, 
-  #                   `phenotypeids` string, 
-  #                   `phenotypelist` string, 
-  #                   `origin` string, 
-  #                   `originsimple` string, 
-  #                   `assembly` string, 
-  #                   `chromosomeaccession` string, 
-  #                   `chromosome` string, 
-  #                   `startposition` int, 
-  #                   `endposition` int, 
-  #                   `referenceallele` string, 
-  #                   `alternateallele` string, 
-  #                   `cytogenetic` string, 
-  #                   `reviewstatus` string, 
-  #                   `numbersubmitters` string, 
-  #                   `guidelines` string, 
-  #                   `testedingtr` string, 
-  #                   `otherids` string, 
-  #                   `submittercategories` string)
-  #                 ROW FORMAT DELIMITED 
-  #                   FIELDS TERMINATED BY '\t' 
-  #                 STORED AS INPUTFORMAT 
-  #                   'org.apache.hadoop.mapred.TextInputFormat' 
-  #                 OUTPUTFORMAT 
-  #                   'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-  #                 LOCATION
-  #                   '${AnnotationsBucket}'
-  #                 TBLPROPERTIES (
-  #                   'transient_lastDdlTime'='1492716849')      
+      Description: Lambda function for creating Athena tables.
+      FunctionName: !Sub "${StackName}-create-table-lambda-function"
+      Handler: "index.handler"
+      Role: !GetAtt LambdaRole.Arn
+      Runtime: "nodejs6.10"
+      Timeout: 30
+      Code:
+        ZipFile: !Sub >
+                      var AWS = require('aws-sdk');
+
+                      var athena = new AWS.Athena({
+                          region: 'us-east-1',
+                          apiVersion: '2017-05-18'
+                      });
+
+                      var response = require('cfn-response');
+
+                      exports.handler = function(event, context) {
+                        var query = parseInt(event.ResourceProperties.query);
+                        var params = {
+                          QueryString: query,
+                          ResultConfiguration: {
+                            OutputLocation: 's3://aws-athena-query-results-${StackName}'
+                          },
+                          QueryExecutionContext: {
+                            Database: '${StackName}'
+                          }
+                        };
+                        var responseData = athena.startQueryExecution(params);
+                        response.send(event, context, response.SUCCESS, responseData);
+                      };
+
+  # Annotations Athena Table
+  AnnotationsTable:
+    Type: Custom::LambdaCallout
+    Properties:
+      ServiceToken: !GetAtt 'CreateTableLambdaFunction.Arn'
+      query: !Sub >
+                  CREATE EXTERNAL TABLE `annotations`(
+                    `alleleid` string, 
+                    `varianttype` string, 
+                    `hgvsname` string, 
+                    `geneid` string, 
+                    `genesymbol` string, 
+                    `hgncid` string, 
+                    `clinicalsignificance` string, 
+                    `clinsigsimple` string, 
+                    `lastevaluated` string, 
+                    `rsid` string, 
+                    `dbvarid` string, 
+                    `rcvaccession` string, 
+                    `phenotypeids` string, 
+                    `phenotypelist` string, 
+                    `origin` string, 
+                    `originsimple` string, 
+                    `assembly` string, 
+                    `chromosomeaccession` string, 
+                    `chromosome` string, 
+                    `startposition` int, 
+                    `endposition` int, 
+                    `referenceallele` string, 
+                    `alternateallele` string, 
+                    `cytogenetic` string, 
+                    `reviewstatus` string, 
+                    `numbersubmitters` string, 
+                    `guidelines` string, 
+                    `testedingtr` string, 
+                    `otherids` string, 
+                    `submittercategories` string)
+                  ROW FORMAT DELIMITED 
+                    FIELDS TERMINATED BY '\t' 
+                  STORED AS INPUTFORMAT 
+                    'org.apache.hadoop.mapred.TextInputFormat' 
+                  OUTPUTFORMAT 
+                    'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+                  LOCATION
+                    '${AnnotationsBucket}'
+                  TBLPROPERTIES (
+                    'transient_lastDdlTime'='1492716849')      
+  # Annotations Named Query
   AnnotationsTableQuery:
     Type: 'AWS::Athena::NamedQuery'
     Properties:
@@ -384,6 +422,32 @@ Resources:
                       '${AnnotationsBucket}'
                     TBLPROPERTIES (
                       'transient_lastDdlTime'='1492716849')
+  # Variants Athena Table
+  VariantsTable:
+    Type: Custom::LambdaCallout
+    Properties:
+      ServiceToken: !GetAtt 'CreateTableLambdaFunction.Arn'
+      query: !Sub >
+                        CREATE EXTERNAL TABLE `variants`(
+                          `alternateallele` string, 
+                          `chromosome` string, 
+                          `endposition` bigint, 
+                          `genotype0` string, 
+                          `genotype1` string, 
+                          `referenceallele` string, 
+                          `sampleid` string, 
+                          `startposition` bigint)
+                        ROW FORMAT SERDE 
+                          'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' 
+                        STORED AS INPUTFORMAT 
+                          'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat' 
+                        OUTPUTFORMAT 
+                          'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
+                        LOCATION
+                          '${VariantsBucket}'
+                        TBLPROPERTIES (
+                          'transient_lastDdlTime'='1492716302')
+  # Variants Named Query
   VariantsTableQuery:
     Type: 'AWS::Athena::NamedQuery'
     Properties:
@@ -410,6 +474,31 @@ Resources:
                           '${VariantsBucket}'
                         TBLPROPERTIES (
                           'transient_lastDdlTime'='1492716302')
+  # Frequencies Athena Table
+  FrequenciesTable:
+    Type: Custom::LambdaCallout
+    Properties:
+      ServiceToken: !GetAtt 'CreateTableLambdaFunction.Arn'
+      query: !Sub >
+                        CREATE EXTERNAL TABLE `variant_frequencies`(
+                          `chromosome` string, 
+                          `startposition` bigint, 
+                          `endposition` bigint, 
+                          `referenceallele` string, 
+                          `alternateallele` string, 
+                          `frequency` double)
+                        ROW FORMAT DELIMITED 
+                          FIELDS TERMINATED BY ',' 
+                        STORED AS INPUTFORMAT 
+                          'org.apache.hadoop.mapred.TextInputFormat' 
+                        OUTPUTFORMAT 
+                          'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
+                        LOCATION
+                          '${FrequenciesBucket}'
+                        TBLPROPERTIES (
+                          'has_encrypted_data'='false', 
+                          'transient_lastDdlTime'='1497466594')
+  # Frequencies Named Query
   FrequenciesTableQuery:
     Type: 'AWS::Athena::NamedQuery'
     Properties:
@@ -435,11 +524,13 @@ Resources:
                         TBLPROPERTIES (
                           'has_encrypted_data'='false', 
                           'transient_lastDdlTime'='1497466594')
+  # S3 Bucket for static web site
   AssetsBucket:
     Type: 'AWS::S3::Bucket'
     Properties:
       WebsiteConfiguration:
         IndexDocument: 'index.html'
+  # Bucket Policy for static web site
   S3BucketPolicy:
       Type: 'AWS::S3::BucketPolicy'
       Properties:
@@ -458,6 +549,7 @@ Resources:
             Resource:
             - !GetAtt 'AssetsBucket.Arn'
             Principal: '*'
+  # CloudFront configuration of static web site
   AssetsCDN:
     Type: 'AWS::CloudFront::Distribution'
     Properties:
