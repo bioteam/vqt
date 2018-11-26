@@ -7,6 +7,12 @@ export default Route.extend({
     selectZygosity (value) {
       this.set('zygosity', value);
     },
+    bedFileLoaded: function(file) {
+      console.log(file.name, file.type, file.data, file.size);
+    },
+    geneFileLoaded: function(file) {
+      console.log(file.name, file.type, file.data, file.size);
+    },
     query (sql) {
       // console.log(sql);
       document.getElementById("query-results").innerHTML = 'Querying...';
