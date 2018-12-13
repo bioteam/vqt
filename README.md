@@ -97,7 +97,7 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Authors
 
-* William Van Etten, PhD** - *Initial work* - [BioTeam](https://bioteam.net)
+* William Van Etten, PhD - [BioTeam](https://bioteam.net)
 * See also the list of [contributors](https://github.com/bioteam/vqt/contributors) who participated in this project.
 
 ## License

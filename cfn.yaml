@@ -580,6 +580,15 @@ Resources:
             ResponseCode: 200
             ResponsePagePath: '/index.html'
         DefaultRootObject: 'index.html'
+  # Variants ETL Pipeline S3 Bucket
+  VariantsETLBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+    DeletionPolicy: Delete
 
 Outputs:
   AssetsBucket:
@@ -590,3 +599,5 @@ Outputs:
     Value: !GetAtt 'AssetsCDN.DomainName'
   IdentityPoolId:
     Value: !Ref IdentityPool
+  VariantsETLBucket:
+    Value: !Ref VariantsETLBucket
