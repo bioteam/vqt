@@ -1,0 +1,433 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Provision an Lambda Function to create EMR/Spark cluster and bootstrap ADAM genomic tool to convert .vcf.gz files to parquet S3 location
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: S3 Bucket Details
+        Parameters:
+          - pLambdaBucket
+          - pVCFBucket
+          - pParquetBucket
+      - Label:
+          default: EMR Configurations
+        Parameters:
+          - pVPC
+          - pSubnet
+          - pMasterInstanceType
+          - pCoreInstanceType
+          - pNumberofNodes
+          - pEC2KeyName
+          - pEMRRelease
+          - pDriverMemory
+          - pExecutorMemory
+      - Label:
+          default: Email & Logging
+        Parameters:
+          - pSNSEmailAddress
+          - pLoggingLevel
+    ParameterLabels:
+      pLambdaBucket:
+        default: Lambda Code S3 Bucket
+      pVCFBucket:
+        default: vcf.gz Input S3 Bucket
+      pParquetBucket:
+        default: Parquet Output S3 Bucket
+      pVPC:
+        default: VPC
+      pSubnet:
+        default: Subnet-ID
+      pNumberofNodes:
+        default: Number of EMR Nodes
+      pMasterInstanceType:
+        default: EMR Master Instance Type
+      pCoreInstanceType:
+        default: EMR Core Instance type
+      pEC2KeyName:
+        default: SSH Key Pair
+      pEMRRelease:
+        default: EMR Release
+      pDriverMemory:
+        default: Spark Driver memory
+      pExecutorMemory:
+        default: Spark Executor memory
+      pSNSEmailAddress:
+        default: Email ID
+      pLoggingLevel:
+        default: Logging Level
+Parameters:
+  pEC2KeyName: # SSH key pair to connect EMR EC2 nodes
+    Description: SSH key pair to use for EMR node login
+    Type: AWS::EC2::KeyPair::KeyName
+  pVPC: # VPC network for EMR cluster
+    Description: VPC for EMR nodes
+    Type: AWS::EC2::VPC::Id
+  pSubnet: # Subnet for EMR cluster
+    Description: Subnet for EMR nodes, from the VPC selected above
+    Type: AWS::EC2::Subnet::Id
+  pNumberofNodes: # Number of EMR nodes
+    Description: Number of EMR nodes to provision (1-20)
+    Type: Number
+    Default: '1'
+    MinValue: '1'
+    MaxValue: '20'
+  pCoreInstanceType: # Type of EMR core nodes
+    Type: String
+    Default: m4.large
+    AllowedValues:
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - cr1.8xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - r4.large
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+      - r4.16xlarge
+    Description: EMR node ec2 instance type - you can add more types by expanding
+      on this list.
+  pMasterInstanceType: # Type of EMR master node
+    Type: String
+    Default: m4.large
+    AllowedValues:
+      - m2.xlarge
+      - m2.2xlarge
+      - m2.4xlarge
+      - r3.xlarge
+      - r3.2xlarge
+      - r3.4xlarge
+      - r3.8xlarge
+      - cr1.8xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - r4.large
+      - r4.xlarge
+      - r4.2xlarge
+      - r4.4xlarge
+      - r4.8xlarge
+      - r4.16xlarge
+    Description: EMR node ec2 instance type - you can add more types by expanding
+      on this list.
+  pEMRRelease: # EMR version release
+    Type: String
+    Default: emr-5.8.0
+    AllowedValues:
+      - emr-5.8.0
+      - emr-5.7.0
+    Description: EMR Release Label
+  pDriverMemory: # Spark driver memory
+      Type: String
+      Default: 1G
+      Description: EMR Spark Driver Memroy in GB - example 4G
+  pExecutorMemory: # Spark executor memory
+      Type: String
+      Default: 1G
+      Description: EMR Spark Executor Memroy in GB - example 4G
+  pLambdaBucket: # Lambda source code location
+    Type: String
+    Description: Existing S3 location where Lambda code,ADAM bootstrap code copied, example - myS3bucket
+    AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
+    MinLength: 3
+    MaxLength: 63
+  pVCFBucket: # VCF.gz input bucket location
+    Type: String
+    Description: New S3 bucket to load input VCF files
+    AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
+    MinLength: 3
+    MaxLength: 63
+  pParquetBucket: # Parquet output bucket location
+    Type: String
+    Description: New S3 bucket to write output Parquet files
+    AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
+    MinLength: 3
+    MaxLength: 63
+  pSNSEmailAddress: #Email address to be subscribed to the new SNS topic
+    Type: String
+    Description: Email address to notify EMR cluster & Step Job status
+    Default: example@example.com
+    AllowedPattern: ^(.+)@(.+)$
+  pLoggingLevel: #Logging level for Lambda function - INFO, ERROR, WARNING
+    Type: String
+    Description: Logging level for Lambda Function - INFO,ERROR,WARNING
+    Default: INFO
+    AllowedValues:
+      - ERROR
+      - WARNING
+      - INFO
+Resources:
+
+  rVCFBucket: # Creates S3 Bucket to upload vcf file
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref pVCFBucket
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      Tags:
+      - Key: Name
+        Value: "VCF input S3 bucket"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          -
+            Function: !GetAtt [rLambdaEMRAdamCluster, Arn]
+            Event: "s3:ObjectCreated:*"
+            Filter:
+              S3Key:
+                Rules:
+                  -
+                    Name: suffix
+                    Value: .vcf.gz
+  rBucketPermission: # Creates perssion to allow Lambda to access VCF S3 bucket
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: 'lambda:InvokeFunction'
+      FunctionName: !Ref rLambdaEMRAdamCluster
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref "AWS::AccountId"
+      SourceArn: !Sub "arn:${AWS::Partition}:s3:::${pVCFBucket}"
+  rNotificationBucketPolicy: # Creates policy to allow putBucket Notification
+    Type: AWS::S3::BucketPolicy
+    DependsOn: rVCFBucket
+    Properties:
+      Bucket: !Ref rVCFBucket
+      PolicyDocument:
+        Statement:
+          - Effect: "Allow"
+            Action:
+            - 's3:PutBucketNotification'
+            Resource: !Sub "arn:${AWS::Partition}:s3:::${pVCFBucket}"
+            Principal:
+              AWS: !GetAtt [rLambdaRole, Arn]
+  rParquetBucket: # Creates S3 Bucket to write output Parquet files
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Retain
+    Properties:
+      BucketName: !Ref pParquetBucket
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+        - ServerSideEncryptionByDefault:
+            SSEAlgorithm: AES256
+      Tags:
+      - Key: Name
+        Value: "Parquet output S3 bucket"
+  rInstanceProfile: # Creates EMR Instance Profile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: rEMREC2Role
+    Type: AWS::IAM::InstanceProfile
+    DependsOn:
+      - rEMREC2Role
+  rEMREC2Role: # Creates IAM role for EMR to access EC2
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role
+      Policies:
+      - PolicyName: Athena-for-EMR
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Resource: "*"
+            Action:
+            - athena:*
+            Effect: Allow
+  rEMRServiceRole: # Creates IAM role for EMR Service access
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - elasticmapreduce.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonElasticMapReduceRole
+  rEMRAutoScalingDefaultRole: # Creates EMR Autoscaling IAM Role
+    Type: AWS::IAM::Role
+    Properties:
+      Path: "/"
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - elasticmapreduce.amazonaws.com
+            - application-autoscaling.amazonaws.com
+        Version: '2012-10-17'
+      ManagedPolicyArns:
+      - !Sub arn:${AWS::Partition}:iam::aws:policy/service-role/AmazonElasticMapReduceforAutoScalingRole # EMR AutoScalingRole # EMR Autoscaling Default Role # Creates EMR Autoscaling Default Role
+  rLambdaRole: # Role resource that the Lambda function uses.
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+        # Give Lambda function role name unique pertaining to stack name to avoid IAM role naming conflicts
+        RoleName: !Sub
+          - LambdaRoleFor-${StackName}
+          - { StackName: !Ref 'AWS::StackName' }
+        Policies:
+        - PolicyName: emr-lambda-role
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - elasticmapreduce:RunJobFlow
+              - elasticmapreduce:PutAutoScalingPolicy
+              - elasticmapreduce:AddInstanceGroups
+              - elasticmapreduce:AddJobFlowSteps
+              - elasticmapreduce:CreateSecurityConfiguration
+              - elasticmapreduce:SetVisibleToAllUsers
+              - elasticmapreduce:ListClusters
+              - elasticmapreduce:DescribeCluster
+              - elasticmapreduce:DescribeStep
+              Resource: '*'
+            - Effect: Allow
+              Action:
+              - iam:CreateServiceLinkedRole
+              - iam:GetRole
+              - iam:PassRole
+              Resource: '*'
+            - Effect: Allow
+              Action:
+              - s3:Get*
+              - s3:List*
+              - s3:Put*
+              - cloudwatch:*
+              - logs:*
+              - sns:publish
+              Resource: '*'
+  rLambdaEMRAdamCluster: # Lambda function code resource
+    Type: AWS::Lambda::Function
+    DependsOn:
+      - rSNSCreateSNSTopic
+      - rInstanceProfile
+      - rEMRServiceRole
+    Properties:
+      Tags:
+      - Key: Name
+        Value: "EMR-ADAM-LambdaFunction"
+      Environment:
+        Variables:
+          emr_release_label: !Ref 'pEMRRelease'
+          master_instance_type: !Ref 'pMasterInstanceType'
+          core_instance_type: !Ref 'pCoreInstanceType'
+          no_core_instances: !Ref 'pNumberofNodes'
+          subnet_id: !Ref 'pSubnet'
+          ec2_keypair: !Ref 'pEC2KeyName'
+          vcf_location: !Ref 'pVCFBucket'
+          code_location: !Ref 'pLambdaBucket'
+          parquet_location: !Ref 'pParquetBucket'
+          outbound_topic_arn: !Ref 'rSNSCreateSNSTopic'
+          driver_memory:  !Ref 'pDriverMemory'
+          executor_memory:  !Ref 'pExecutorMemory'
+          logging_level: !Ref 'pLoggingLevel'
+          ec2_role: !Ref 'rInstanceProfile'
+          emr_service_role: !Ref 'rEMRServiceRole'
+      Handler: index.lambda_handler
+      FunctionName: !Sub
+          - EMR-${StackName}
+          - { StackName: !Ref 'AWS::StackName' }
+      Description: Lambda function to create new EMR Cluster and Bootstrap scripts.
+      Role: !GetAtt [rLambdaRole, Arn]
+      Code:
+        S3Bucket: !Ref 'pLambdaBucket'
+        S3Key: lambda.zip
+      Runtime: python3.6
+      Timeout: 180
+  rCloudWatchEvent: #CloudWatch Event Rule to trigger the Lambda Function
+    Type: AWS::Events::Rule
+    DependsOn: rLambdaEMRAdamCluster
+    Properties:
+      EventPattern:
+          source:
+            - aws.emr
+          detail-type:
+              - "EMR Step Status Change"
+          detail:
+            state:
+              - COMPLETED
+              - FAILED
+      Targets:
+      - Arn:
+          Fn::GetAtt:
+            - "rLambdaEMRAdamCluster"
+            - "Arn"
+        Id: rLambdaEMRAdamCluster
+  rCloudWatchEventLambdaPermission: # Allows CloudWatch Event to Invoke the rLambdaFunction function
+    Type: AWS::Lambda::Permission
+    DependsOn: rLambdaEMRAdamCluster
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName:
+        Fn::GetAtt:
+          - "rLambdaEMRAdamCluster"
+          - "Arn"
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt rCloudWatchEvent.Arn
+  rSNSCreateSNSTopic: #SNS Topic Creation and Subscription of a single Email address
+    Type: AWS::SNS::Topic
+    Properties:
+      Subscription:
+      - Endpoint: !Ref pSNSEmailAddress
+        Protocol: email
+Outputs:
+  oLambdaFunctionforEMRAdam: # Lambda Function created to launch ADAM- EMR cluster
+    Description: Lambda function to launch EMR cluster_name
+    Value: !Ref rLambdaEMRAdamCluster
+  oVCFBucket: # VCF Input S3 bucket
+    Description: VCF file input S3 bucket
+    Value: !Ref rVCFBucket
+  oParquetBucket: # Parquet Output S3 bucket
+    Description: Parquet file output S3 bucket
+    Value: !Ref rParquetBucket
+  oSNSSubscriber: # EMAIL ID subscribed for notification
+    Description: SNS Subscriber Email Address
+    Value: !Ref pSNSEmailAddress
+    Export:
+      Name: !Sub ${AWS::StackName}-NotificationEmail
+  oSNSTopicARN: # SNS topic
+    Description: SNS topic ARN
+    Value: !Ref rSNSCreateSNSTopic
+    Export:
+      Name: !Sub ${AWS::StackName}-SNSARN
