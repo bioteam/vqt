@@ -13,7 +13,7 @@ Parameters:
   ForceHttps:
     Type: String
     Description: Force HTTPS by redirecting HTTP requests
-    Default: '0'
+    Default: 0
     AllowedValues:
       - 0
       - 1
