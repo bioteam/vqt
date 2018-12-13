@@ -4,6 +4,7 @@ vqt is a server-less, client-side javascript application that provides a Web UI 
 Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 
 ![Serverless](https://raw.githubusercontent.com/bioteam/vqt/assets/serverless.png)
+
 * Developed using the [Ember](https://www.emberjs.com) framework
 * Served from a [static S3 website](https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html)
 * Queries data through AWS APIs ([Cognito](https://aws.amazon.com/cognito/), [Lambda](https://aws.amazon.com/lambda/), [Athena](https://aws.amazon.com/athena/), [S3](https://aws.amazon.com/s3/))
@@ -59,19 +60,19 @@ npm install -g ember-cli
 
 ### From a web browser
 
-```
+```sh
 open http://localhost:4200/tests
 ```
 
 ### From the command line
 
-```
+```sh
 ember test
 ```
 
 ## Deployment
 
-```
+```sh
 ember deploy production
 ```
 
@@ -85,7 +86,7 @@ ember deploy production
 * [ember-cli-dotenv](https://github.com/fivetanley/ember-cli-dotenv)
 * [ember-auto-import](https://github.com/ef4/ember-auto-import)
 * [aws-sdk](https://www.npmjs.com/package/aws-sdk)
-* 
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
@@ -96,8 +97,8 @@ We use [SemVer](http://semver.org/) for versioning. For the versions available, 
 
 ## Authors
 
-* **William Van Etten, PhD** - *Initial work* - [BioTeam](https://bioteam.net)
-See also the list of [contributors](https://github.com/bioteam/vqt/contributors) who participated in this project.
+* William Van Etten, PhD** - *Initial work* - [BioTeam](https://bioteam.net)
+* See also the list of [contributors](https://github.com/bioteam/vqt/contributors) who participated in this project.
 
 ## License
 
