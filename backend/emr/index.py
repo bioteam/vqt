@@ -5,7 +5,7 @@
 # Creates EMR cluster and bootstrap ADAM genomic tool and run step jobs to convert .vcf.gz to parquet
 # API Triggers:
 # Services: Cloudwatch Events (trigger), Amazon EMR, SNS, Cloudwatch
-# Python 3.6 - Lambda - Last Modified 05/04/2018
+# Python 3.6 - Lambda - Last Modified 12/12/2018
 """
 
 import logging
@@ -123,7 +123,17 @@ def create_step(cluster_id,vcf_file):
             'ActionOnFailure': 'CONTINUE',
                     'HadoopJarStep': {
                         'Jar': 'command-runner.jar',
-                        'Args': ["/home/hadoop/adam/bin/adam-submit", "transformGenotypes", s3_vcf_input_location, s3_parquet_output_location]
+                        'Args': [
+                            '/home/hadoop/adam/bin/adam-submit',
+                            '--driver-memory',
+                            driver_memory,
+                            '--executor-memory',
+                            executor_memory,
+                            '--',
+                            'transformGenotypes',
+                            s3_vcf_input_location,
+                            s3_parquet_output_location
+                        ]
                     }
                 }
             ]
@@ -225,7 +235,17 @@ def emr_cluster(vcf_file, context):
         'ActionOnFailure': 'CONTINUE',
         'HadoopJarStep': {
             'Jar': 'command-runner.jar',
-            'Args': ["/home/hadoop/adam/bin/adam-submit", "transformGenotypes", s3_vcf_input_location, s3_parquet_output_location]
+            'Args': [
+                '/home/hadoop/adam/bin/adam-submit',
+                '--driver-memory',
+                driver_memory,
+                '--executor-memory',
+                executor_memory,
+                '--',
+                'transformGenotypes',
+                s3_vcf_input_location,
+                s3_parquet_output_location
+                ]
             }
         }
     ]

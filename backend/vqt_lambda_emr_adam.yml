@@ -12,7 +12,6 @@ Metadata:
       - Label:
           default: EMR Configurations
         Parameters:
-          - pVPC
           - pSubnet
           - pMasterInstanceType
           - pCoreInstanceType
@@ -33,8 +32,6 @@ Metadata:
         default: vcf.gz Input S3 Bucket
       pParquetBucket:
         default: Parquet Output S3 Bucket
-      pVPC:
-        default: VPC
       pSubnet:
         default: Subnet-ID
       pNumberofNodes:
@@ -59,9 +56,6 @@ Parameters:
   pEC2KeyName: # SSH key pair to connect EMR EC2 nodes
     Description: SSH key pair to use for EMR node login
     Type: AWS::EC2::KeyPair::KeyName
-  pVPC: # VPC network for EMR cluster
-    Description: VPC for EMR nodes
-    Type: AWS::EC2::VPC::Id
   pSubnet: # Subnet for EMR cluster
     Description: Subnet for EMR nodes, from the VPC selected above
     Type: AWS::EC2::Subnet::Id
@@ -204,7 +198,6 @@ Resources:
       SourceArn: !Sub "arn:${AWS::Partition}:s3:::${pVCFBucket}"
   rNotificationBucketPolicy: # Creates policy to allow putBucket Notification
     Type: AWS::S3::BucketPolicy
-    DependsOn: rVCFBucket
     Properties:
       Bucket: !Ref rVCFBucket
       PolicyDocument:
@@ -233,8 +226,6 @@ Resources:
       Roles:
       - Ref: rEMREC2Role
     Type: AWS::IAM::InstanceProfile
-    DependsOn:
-      - rEMREC2Role
   rEMREC2Role: # Creates IAM role for EMR to access EC2
     Type: AWS::IAM::Role
     Properties:
@@ -339,10 +330,6 @@ Resources:
               Resource: '*'
   rLambdaEMRAdamCluster: # Lambda function code resource
     Type: AWS::Lambda::Function
-    DependsOn:
-      - rSNSCreateSNSTopic
-      - rInstanceProfile
-      - rEMRServiceRole
     Properties:
       Tags:
       - Key: Name
@@ -377,7 +364,6 @@ Resources:
       Timeout: 180
   rCloudWatchEvent: #CloudWatch Event Rule to trigger the Lambda Function
     Type: AWS::Events::Rule
-    DependsOn: rLambdaEMRAdamCluster
     Properties:
       EventPattern:
           source:
@@ -396,7 +382,6 @@ Resources:
         Id: rLambdaEMRAdamCluster
   rCloudWatchEventLambdaPermission: # Allows CloudWatch Event to Invoke the rLambdaFunction function
     Type: AWS::Lambda::Permission
-    DependsOn: rLambdaEMRAdamCluster
     Properties:
       Action: lambda:InvokeFunction
       FunctionName:

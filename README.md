@@ -1,4 +1,5 @@
 # vqt (Variant Query Tool)
+
 vqt is a server-less, client-side javascript application that provides a Web UI for querying variants stored on [AWS](https://aws.amazon.com) [S3](https://aws.amazon.com/s3/).
 
 Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
@@ -23,18 +24,15 @@ You will need the following software to run the project on your local machine fo
 * [Node.js](https://nodejs.org/)
 * [Ember CLI](https://ember-cli.com/)
 
-
 ### Installing Developer Prerequisites
 
 Install prerequisites (if needed): brew, git, watchman, node, ember-cli.
 
-1. Install brew
+#### OS X
 
-```sh
-/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-```
+1. Install [homebrew](https://brew.sh)
 
-1. Install git, node, watchman
+2. Install git, node, watchman
 
 ```sh
 brew install git node watchman
@@ -52,7 +50,7 @@ npm install -g ember-cli
 * `cd vqt`
 * `npm install`
 * `cp .template.env .env`
-* populate .env with values from [AWS Prerequisites](#aws-prerequisites)
+* Populate .env with values from [Cognito](https://github.com/bioteam/vqt/wiki/Configure-Cognito,-IAM,-and-Lambda) and [CloudFront](https://github.com/bioteam/vqt/wiki/Configure-CloudFront)
 * `ember server`
 * `open http://localhost:4200`
 
@@ -74,6 +72,35 @@ ember test
 
 ```sh
 ember deploy production
+```
+
+## ETL Pipeline
+
+Variants in VCF format can be converted to Parquet format using [ADAM](https://github.com/bigdatagenomics/adam).
+
+### Serverless ETL Backend
+
+![Backend](https://raw.githubusercontent.com/bioteam/vqt/assets/backend.png)
+
+#### Upload the lambda function and EMR payload to your bucket
+
+```sh
+aws s3 cp lambda/lambda.zip s3://VQTLambdaBucket
+aws s3 cp emr/jboot2.tar s3://VQTLambdaBucket
+```
+
+#### Create a new EMR stack with lambda function trigger
+
+```sh
+ember deploy backend
+```
+
+### Running ETL jobs
+
+#### Upload variant files to pVCFBucket to trigger EMR ETL job flow
+
+```sh
+aws s3 cp variants/example.vcf.gz s3://VCFInputBucket/
 ```
 
 ## Built With

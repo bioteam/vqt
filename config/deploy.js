@@ -20,13 +20,12 @@ module.exports = function(deployTarget) {
       accessKeyId: process.env.AWS_KEY,
       secretAccessKey: process.env.AWS_SECRET,
       region: 'us-east-1',
-      stackName: `${require('../package.json').name}-${deployTarget}`,
+      stackName: `${require('../package.json').name}-ui-${deployTarget}`,
       templateBody: 'file://cfn.yaml',
       capabilities: ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
       parameters: {
         DomainName: process.env.CFN_DOMAINNAME,
         CFCertificate: process.env.CFN_CFCERTIFICATE,
-        StackName: `${require('../package.json').name}-${deployTarget}`
       }
     },
     s3: {
@@ -49,6 +48,23 @@ module.exports = function(deployTarget) {
   //   ENV.s3.bucket = process.env.PRODUCTION_BUCKET;
   //   ENV.s3.region = process.env.PRODUCTION_REGION;
   // }
+
+  if (deployTarget === 'backend') {
+    ENV.cloudformation.stackName = `${require('../package.json').name}-etl-${deployTarget}`,
+    ENV.cloudformation.templateBody = 'file://backend/vqt_lambda_emr_adam.yml',
+    ENV.cloudformation.parameters = {
+      pEC2KeyName: process.env.AWS_EC2_KEY_NAME,
+      pSubnet: process.env.AWS_VPC_SUBNET,
+      pLambdaBucket: process.env.S3_LAMBDA_BUCKET_NAME,
+      pVCFBucket: process.env.S3_VCF_BUCKET_NAME,
+      pParquetBucket: process.env.S3_PARQUET_BUCKET_NAME,
+      pSNSEmailAddress: process.env.AWS_SNS_EMAIL_ADDRESS
+    }
+
+    ENV.s3.filePattern = 'backend/emr/*'
+    ENV.s3.bucket = process.env.S3_LAMBDA_BUCKET_NAME
+  
+  }
 
   // Note: if you need to build some configuration asynchronously, you can return
   // a promise that resolves with the ENV object instead of returning the

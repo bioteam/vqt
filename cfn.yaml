@@ -7,16 +7,13 @@ Parameters:
   CFCertificate:
     Description: 'Existing ACM Certificate ARN for CloudFront. Must be created in the us-east-1 region!'
     Type: String
-  StackName:
-    Description: 'Name of CloudFormation stack, e.g. vqt-production'
-    Type: String
   ForceHttps:
     Type: String
     Description: Force HTTPS by redirecting HTTP requests
-    Default: 0
+    Default: "true"
     AllowedValues:
-      - 0
-      - 1
+      - "true"
+      - "false"
   AnnotationsBucket:
     Description: 'S3 Bucket containing Annotations. Must be readable by Athena!'
     Type: String
@@ -30,7 +27,7 @@ Parameters:
     Type: String
     Default: 's3://vqt.frequencies/'
 Conditions:
-  HasForceHttps: !Equals [ !Ref ForceHttps, '1' ]
+  HasForceHttps: !Equals [ !Ref ForceHttps, 'true' ]
 Resources:
   # Create an Identity Pool for authorited/unauthorized users
   IdentityPool:
@@ -70,35 +67,6 @@ Resources:
                 Action:
                   - "lambda:InvokeFunction"
                 Resource: "*"
-  # Presently authorized and unauthorized are configured the same.
-  # At some point will limit unauthorized actions.
-  #
-  # CognitoUnAuthorizedRole:
-  #   Type: "AWS::IAM::Role"
-  #   Properties:
-  #     AssumeRolePolicyDocument: 
-  #       Version: "2012-10-17"
-  #       Statement:
-  #         - Effect: "Allow"
-  #           Principal: 
-  #             Federated: "cognito-identity.amazonaws.com"
-  #           Action: 
-  #             - "sts:AssumeRoleWithWebIdentity"
-  #           Condition:
-  #             StringEquals: 
-  #               "cognito-identity.amazonaws.com:aud": !Ref IdentityPool
-  #             "ForAnyValue:StringLike":
-  #               "cognito-identity.amazonaws.com:amr": unauthenticated
-  #     Policies:
-  #       - PolicyName: "CognitoUnauthorizedPolicy"
-  #         PolicyDocument: 
-  #           Version: "2012-10-17"
-  #           Statement: 
-  #             - Effect: "Allow"
-  #               Action:
-  #                 - "mobileanalytics:PutEvents"
-  #                 - "cognito-sync:*"
-  #               Resource: "*"
   # Create a role for users unauthorized by Cognito
   CognitoUnAuthorizedRole:
     Type: "AWS::IAM::Role"
@@ -139,21 +107,17 @@ Resources:
       Roles:
         authenticated: !GetAtt CognitoAuthorizedRole.Arn
         unauthenticated: !GetAtt CognitoUnAuthorizedRole.Arn
-  # Create a database for athena tables
-  AthenaDatabase:
-    Type: 'AWS::Glue::Database'
-    Properties:
-      CatalogId: !Ref AWS::AccountId
-      DatabaseInput:
-        Name: !Ref StackName
-        Description: "Athena Database"
   # Create an S3 bucket for athena query results
   ResultsBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "aws-athena-query-results-${StackName}"
+      BucketName: !Sub "aws-athena-query-results-${AWS::AccountId}-${AWS::StackName}"
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
   # Create a role for executing athena through lambda
-  LambdaRole:
+  AthenaLambdaRole:
     Type: "AWS::IAM::Role"
     Properties:
       AssumeRolePolicyDocument: 
@@ -167,15 +131,14 @@ Resources:
               - "sts:AssumeRole"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
-        - arn:aws:iam::aws:policy/AmazonS3FullAccess
   # Create a lambda function executable by the lambda role
-  LambdaFunction:
+  AthenaLambdaFunction:
     Type: "AWS::Lambda::Function"
     Properties:
       Description: Lambda function for Athena queries.
-      FunctionName: !Sub "${StackName}-lambda-function"
+      FunctionName: !Sub "${AWS::StackName}-lambda-function"
       Handler: "index.handler"
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt AthenaLambdaRole.Arn
       Runtime: "nodejs6.10"
       Timeout: 30
       Code:
@@ -264,13 +227,13 @@ Resources:
               // QueryString: query,
               QueryString: event.query,
               ResultConfiguration: {
-                OutputLocation: 's3://aws-athena-query-results-${StackName}',
+                OutputLocation: !Ref ResultsBucket,
                 EncryptionConfiguration: {
                   EncryptionOption: 'SSE_S3'
                 }
               },
               QueryExecutionContext: {
-                Database: '${StackName}'
+                Database: '${AWS::StackName}'
               }
             };
             var queryId;
@@ -295,9 +258,9 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       Description: Lambda function for creating Athena tables.
-      FunctionName: !Sub "${StackName}-create-table-lambda-function"
+      FunctionName: !Sub "${AWS::StackName}-create-table-lambda-function"
       Handler: "index.handler"
-      Role: !GetAtt LambdaRole.Arn
+      Role: !GetAtt AthenaLambdaRole.Arn
       Runtime: "nodejs6.10"
       Timeout: 30
       Code:
@@ -316,69 +279,22 @@ Resources:
                         var params = {
                           QueryString: query,
                           ResultConfiguration: {
-                            OutputLocation: 's3://aws-athena-query-results-${StackName}'
+                            OutputLocation: !Ref ResultsBucket,
                           },
                           QueryExecutionContext: {
-                            Database: '${StackName}'
+                            Database: '${AWS::StackName}'
                           }
                         };
                         var responseData = athena.startQueryExecution(params);
                         response.send(event, context, response.SUCCESS, responseData);
                       };
-
-  # Annotations Athena Table
-  AnnotationsTable:
-    Type: Custom::LambdaCallout
-    Properties:
-      ServiceToken: !GetAtt 'CreateTableLambdaFunction.Arn'
-      query: !Sub >
-                  CREATE EXTERNAL TABLE `annotations`(
-                    `alleleid` string, 
-                    `varianttype` string, 
-                    `hgvsname` string, 
-                    `geneid` string, 
-                    `genesymbol` string, 
-                    `hgncid` string, 
-                    `clinicalsignificance` string, 
-                    `clinsigsimple` string, 
-                    `lastevaluated` string, 
-                    `rsid` string, 
-                    `dbvarid` string, 
-                    `rcvaccession` string, 
-                    `phenotypeids` string, 
-                    `phenotypelist` string, 
-                    `origin` string, 
-                    `originsimple` string, 
-                    `assembly` string, 
-                    `chromosomeaccession` string, 
-                    `chromosome` string, 
-                    `startposition` int, 
-                    `endposition` int, 
-                    `referenceallele` string, 
-                    `alternateallele` string, 
-                    `cytogenetic` string, 
-                    `reviewstatus` string, 
-                    `numbersubmitters` string, 
-                    `guidelines` string, 
-                    `testedingtr` string, 
-                    `otherids` string, 
-                    `submittercategories` string)
-                  ROW FORMAT DELIMITED 
-                    FIELDS TERMINATED BY '\t' 
-                  STORED AS INPUTFORMAT 
-                    'org.apache.hadoop.mapred.TextInputFormat' 
-                  OUTPUTFORMAT 
-                    'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-                  LOCATION
-                    '${AnnotationsBucket}'
-                  TBLPROPERTIES (
-                    'transient_lastDdlTime'='1492716849')      
+  
   # Annotations Named Query
   AnnotationsTableQuery:
     Type: 'AWS::Athena::NamedQuery'
     Properties:
       Name: "annotations"
-      Database: !Ref StackName
+      Database: !Ref AWS::StackName
       Description: "Annotations Table Create Statement"
       QueryString: !Sub >
                     CREATE EXTERNAL TABLE `annotations`(
@@ -422,37 +338,13 @@ Resources:
                       '${AnnotationsBucket}'
                     TBLPROPERTIES (
                       'transient_lastDdlTime'='1492716849')
-  # Variants Athena Table
-  VariantsTable:
-    Type: Custom::LambdaCallout
-    Properties:
-      ServiceToken: !GetAtt 'CreateTableLambdaFunction.Arn'
-      query: !Sub >
-                        CREATE EXTERNAL TABLE `variants`(
-                          `alternateallele` string, 
-                          `chromosome` string, 
-                          `endposition` bigint, 
-                          `genotype0` string, 
-                          `genotype1` string, 
-                          `referenceallele` string, 
-                          `sampleid` string, 
-                          `startposition` bigint)
-                        ROW FORMAT SERDE 
-                          'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' 
-                        STORED AS INPUTFORMAT 
-                          'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat' 
-                        OUTPUTFORMAT 
-                          'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
-                        LOCATION
-                          '${VariantsBucket}'
-                        TBLPROPERTIES (
-                          'transient_lastDdlTime'='1492716302')
+
   # Variants Named Query
   VariantsTableQuery:
     Type: 'AWS::Athena::NamedQuery'
     Properties:
       Name: "variants"
-      Database: !Ref StackName
+      Database: !Ref AWS::StackName
       Description: "Variants Table Create Statement"
       QueryString: !Sub >
                         CREATE EXTERNAL TABLE `variants`(
@@ -474,36 +366,13 @@ Resources:
                           '${VariantsBucket}'
                         TBLPROPERTIES (
                           'transient_lastDdlTime'='1492716302')
-  # Frequencies Athena Table
-  FrequenciesTable:
-    Type: Custom::LambdaCallout
-    Properties:
-      ServiceToken: !GetAtt 'CreateTableLambdaFunction.Arn'
-      query: !Sub >
-                        CREATE EXTERNAL TABLE `variant_frequencies`(
-                          `chromosome` string, 
-                          `startposition` bigint, 
-                          `endposition` bigint, 
-                          `referenceallele` string, 
-                          `alternateallele` string, 
-                          `frequency` double)
-                        ROW FORMAT DELIMITED 
-                          FIELDS TERMINATED BY ',' 
-                        STORED AS INPUTFORMAT 
-                          'org.apache.hadoop.mapred.TextInputFormat' 
-                        OUTPUTFORMAT 
-                          'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-                        LOCATION
-                          '${FrequenciesBucket}'
-                        TBLPROPERTIES (
-                          'has_encrypted_data'='false', 
-                          'transient_lastDdlTime'='1497466594')
+
   # Frequencies Named Query
   FrequenciesTableQuery:
     Type: 'AWS::Athena::NamedQuery'
     Properties:
       Name: "frequencies"
-      Database: !Ref StackName
+      Database: !Ref AWS::StackName
       Description: "Variant Frequencies Table Create Statement"
       QueryString: !Sub >
                         CREATE EXTERNAL TABLE `variant_frequencies`(
