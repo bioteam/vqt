@@ -85,11 +85,11 @@ Variants in VCF format can be converted to Parquet format using [ADAM](https://g
 #### Upload the lambda function and EMR payload to your bucket
 
 ```sh
-aws s3 cp lambda/lambda.zip s3://VQTLambdaBucket
-aws s3 cp emr/jboot2.tar s3://VQTLambdaBucket
+aws s3 cp backend/emr/lambda.zip s3://VQTLambdaBucket
+aws s3 cp backend/emr/jboot2.tar s3://VQTLambdaBucket
 ```
 
-#### Create a new EMR stack with lambda function trigger
+#### Create the EMR stack with lambda function trigger
 
 ```sh
 ember deploy backend

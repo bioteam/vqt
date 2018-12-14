@@ -50,6 +50,8 @@ module.exports = function(deployTarget) {
   // }
 
   if (deployTarget === 'backend') {
+    // Create the stack with Lambda Function to create EMR/Spark cluster
+
     ENV.cloudformation.stackName = `${require('../package.json').name}-etl-${deployTarget}`,
     ENV.cloudformation.templateBody = 'file://backend/vqt_lambda_emr_adam.yml',
     ENV.cloudformation.parameters = {
@@ -60,10 +62,6 @@ module.exports = function(deployTarget) {
       pParquetBucket: process.env.S3_PARQUET_BUCKET_NAME,
       pSNSEmailAddress: process.env.AWS_SNS_EMAIL_ADDRESS
     }
-
-    ENV.s3.filePattern = 'backend/emr/*'
-    ENV.s3.bucket = process.env.S3_LAMBDA_BUCKET_NAME
-  
   }
 
   // Note: if you need to build some configuration asynchronously, you can return
