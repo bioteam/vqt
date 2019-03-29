@@ -452,7 +452,7 @@ Resources:
             Resource: !Sub "arn:${AWS::Partition}:s3:::${pVCFBucket}"
             Principal:
               AWS: !GetAtt [rLambdaRole, Arn]
-  rParquetBucket: # Creates S3 Bucket to write output Parquet files
+  rVariantsBucket: # Creates S3 Bucket to write output Parquet files
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     Properties:
@@ -657,7 +657,7 @@ Resources:
         Parameters: { "classification" : "parquet" }
         StorageDescriptor:
           Location:
-            Fn::Sub: "s3://${rParquetBucket}/clean"
+            Fn::Sub: "s3://${rVariantsBucket}/clean"
           InputFormat: "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
           OutputFormat: "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
           SerdeInfo:
@@ -714,76 +714,39 @@ Resources:
       CatalogId: !Ref AWS::AccountId
       TableInput:
         Name: annotations
+        Parameters: { "classification" : "parquet" }
         StorageDescriptor:
           Location:
-            Fn::Sub: "s3://${pAnnotationsBucket}/"
-          InputFormat: "org.apache.hadoop.mapred.TextInputFormat"
-          OutputFormat: "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat"
+            Fn::Sub: "s3://${pAnnotationsBucket}/annotations"
+          InputFormat: "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat"
+          OutputFormat: "org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat"
           SerdeInfo:
-            Parameters: { "field.delim": "\t", "serialization.format": "\t" }
-            SerializationLibrary: "org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe"
-          StoredAsSubDirectories: false
+            SerializationLibrary: "org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe"
           Columns:
-          - Name: alleleid
+          - Name: contigname
             Type: string
-          - Name: varianttype
-            Type: string
-          - Name: hgvsname
-            Type: string
-          - Name: geneid
-            Type: string
-          - Name: genesymbol
-            Type: string
-          - Name: hgncid
-            Type: string
-          - Name: clinicalsignificance
-            Type: string
-          - Name: clinsigsimple
-            Type: string
-          - Name: lastevaluated
-            Type: string
-          - Name: rsid
-            Type: string
-          - Name: dbvarid
-            Type: string
-          - Name: rcvaccession
-            Type: string
-          - Name: phenotypeids
-            Type: string
-          - Name: phenotypelist
-            Type: string
-          - Name: origin
-            Type: string
-          - Name: originsimple
-            Type: string
-          - Name: assembly
-            Type: string
-          - Name: chromosomeaccession
-            Type: string
-          - Name: chromosome
-            Type: string
-          - Name: startposition
-            Type: int
-          - Name: endposition
-            Type: int
+          - Name: start
+            Type: bigint
+          - Name: end
+            Type: bigint
+          - Name: names
+            Type: array<string>
+          - Name: splitfrommultiallelic
+            Type: boolean
           - Name: referenceallele
             Type: string
           - Name: alternateallele
             Type: string
-          - Name: cytogenetic
-            Type: string
-          - Name: reviewstatus
-            Type: string
-          - Name: numbersubmitters
-            Type: string
-          - Name: guidelines
-            Type: string
-          - Name: testedingtr
-            Type: string
-          - Name: otherids
-            Type: string
-          - Name: submittercategories
-            Type: string
+          - Name: quality
+            Type: double
+          - Name: filtersapplied
+            Type: boolean
+          - Name: filterspassed
+            Type: boolean
+          - Name: filtersfailed
+            Type: array<string>
+          - Name: annotation
+            Type: struct<ancestralAllele:string,alleleCount:int,readDepth:int,forwardReadDepth:int,reverseReadDepth:int,referenceReadDepth:int,referenceForwardReadDepth:int,referenceReverseReadDepth:int,alleleFrequency:float,cigar:string,dbSnp:boolean,hapMap2:boolean,hapMap3:boolean,validated:boolean,thousandGenomes:boolean,somatic:boolean,transcriptEffects:array<struct<alternateAllele:string,effects:array<string>,geneName:string,geneId:string,featureType:string,featureId:string,biotype:string,rank:int,total:int,genomicHgvs:string,transcriptHgvs:string,proteinHgvs:string,cdnaPosition:int,cdnaLength:int,cdsPosition:int,cdsLength:int,proteinPosition:int,proteinLength:int,distance:int,messages:array<string>>>,attributes:map<string,string>>
 Outputs:
   AssetsBucket:
     Value: !Ref AssetsBucket
@@ -799,9 +762,9 @@ Outputs:
   oVCFBucket: # VCF Input S3 bucket
     Description: VCF file input S3 bucket
     Value: !Ref rVCFBucket
-  oParquetBucket: # Parquet Output S3 bucket
+  oVariantsBucket: # Parquet Output S3 bucket
     Description: Parquet file output S3 bucket
-    Value: !Ref rParquetBucket
+    Value: !Ref rVariantsBucket
   oSNSSubscriber: # EMAIL ID subscribed for notification
     Description: SNS Subscriber Email Address
     Value: !Ref pSNSEmailAddress
