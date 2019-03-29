@@ -1,32 +1,33 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Deploy VQT application, and EMR / Glue / Athena backend 
 Parameters:
-  pDomainName:
-    Description: 'Domain name of the CDN, e.g. assets.example.com'
+  pDomainName: # Required
+    Description: 'Existing DNS Domain name of the CDN, e.g. assets.example.com'
     Type: String
-  pCFCertificate:
+  pCFCertificate: # Required
     Description: 'Existing ACM Certificate ARN for CloudFront. Must be created in the us-east-1 region!'
     Type: String
-  pForceHttps:
+  pForceHttps: # Optional
     Type: String
     Description: Force HTTPS by redirecting HTTP requests
     Default: "true"
     AllowedValues:
       - "true"
       - "false"
-  pEC2KeyName: # SSH key pair to connect EMR EC2 nodes
-    Description: SSH key pair to use for EMR node login
+  pEC2KeyName: # Required
+    Description: Existing SSH key pair to use for EMR node login
     Type: AWS::EC2::KeyPair::KeyName
-  pSubnet: # Subnet for EMR cluster
-    Description: Subnet for EMR nodes, from the VPC selected above
+  pSubnet: # Required
+    Description: Existing Subnet for EMR nodes
     Type: AWS::EC2::Subnet::Id
-  pNumberofNodes: # Number of EMR nodes
+  pNumberofNodes: # Optional
     Description: Number of EMR nodes to provision (1-20)
     Type: Number
     Default: '1'
     MinValue: '1'
     MaxValue: '20'
-  pCoreInstanceType: # Type of EMR core nodes
+  pCoreInstanceType: # Optional
+    Description: EMR node ec2 instance type.
     Type: String
     Default: m4.large
     AllowedValues:
@@ -50,9 +51,8 @@ Parameters:
       - r4.4xlarge
       - r4.8xlarge
       - r4.16xlarge
-    Description: EMR node ec2 instance type - you can add more types by expanding
-      on this list.
-  pMasterInstanceType: # Type of EMR master node
+  pMasterInstanceType: # Optional
+    Description: EMR node ec2 instance type.
     Type: String
     Default: m4.large
     AllowedValues:
@@ -76,62 +76,60 @@ Parameters:
       - r4.4xlarge
       - r4.8xlarge
       - r4.16xlarge
-    Description: EMR node ec2 instance type - you can add more types by expanding
-      on this list.
-  pEMRRelease: # EMR version release
+  pEMRRelease: # Optional
+    Description: EMR version release
     Type: String
     Default: emr-5.8.0
     AllowedValues:
       - emr-5.8.0
       - emr-5.7.0
-    Description: EMR Release Label
-  pDriverMemory: # Spark driver memory
-      Type: String
-      Default: 1G
+  pDriverMemory: # Optional
       Description: EMR Spark Driver Memroy in GB - example 4G
-  pExecutorMemory: # Spark executor memory
       Type: String
       Default: 1G
+  pExecutorMemory: # Optional
       Description: EMR Spark Executor Memroy in GB - example 4G
-  pLambdaBucket: # Lambda source code location
+      Type: String
+      Default: 1G
+  pEmrCodeBucket: # Required
     Type: String
-    Description: Existing S3 location where Lambda code,ADAM bootstrap code copied, example - myS3bucket
+    Description: Existing S3 bucket containing Lambda and ADAM bootstrap code
     AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
     MinLength: 3
     MaxLength: 63
-  pVCFBucket: # VCF.gz input bucket location
+  pVCFBucket: # Required
     Type: String
     Description: New S3 bucket to load input VCF files
     AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
     MinLength: 3
     MaxLength: 63
-  pParquetBucket: # Parquet output bucket location
+  pVariantsBucket: # Required
     Type: String
-    Description: New S3 bucket to write output Parquet files
+    Description: New S3 bucket to write output Parquet formatted VCF files
     AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
     MinLength: 3
     MaxLength: 63
-  pAnnotationsBucket: # Annotations bucket containing clinvar.parquet
-    Description: Existing S3 bucket to read Clinvar input parquet files
+  pAnnotationsBucket: # Optional
+    Description: Existing S3 bucket to read input Clinvar Parquet formatted VCF file
     Type: String
     Default: "vqt-annotations"
     AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
     MinLength: 3
     MaxLength: 63
-  pSNSEmailAddress: #Email address to be subscribed to the new SNS topic
-    Type: String
+  pSNSEmailAddress: # Optional
     Description: Email address to notify EMR cluster & Step Job status
+    Type: String
     Default: example@example.com
     AllowedPattern: ^(.+)@(.+)$
-  pLoggingLevel: #Logging level for Lambda function - INFO, ERROR, WARNING
-    Type: String
+  pLoggingLevel: # Optional
     Description: Logging level for Lambda Function - INFO,ERROR,WARNING
+    Type: String
     Default: INFO
     AllowedValues:
       - ERROR
       - WARNING
       - INFO
-  pGlueDatabase: # Athena Database Name
+  pGlueDatabase: # Optional
     AllowedPattern: ^[0-9a-z-]*$
     Type: String
     MinLength: 1
@@ -458,7 +456,7 @@ Resources:
     Type: AWS::S3::Bucket
     DeletionPolicy: Retain
     Properties:
-      BucketName: !Ref pParquetBucket
+      BucketName: !Ref pVariantsBucket
       BucketEncryption: 
         ServerSideEncryptionConfiguration: 
         - ServerSideEncryptionByDefault:
@@ -589,8 +587,8 @@ Resources:
           subnet_id: !Ref 'pSubnet'
           ec2_keypair: !Ref 'pEC2KeyName'
           vcf_location: !Ref 'pVCFBucket'
-          code_location: !Ref 'pLambdaBucket'
-          parquet_location: !Ref 'pParquetBucket'
+          code_location: !Ref 'pEmrCodeBucket'
+          parquet_location: !Ref 'pVariantsBucket'
           outbound_topic_arn: !Ref 'rSNSCreateSNSTopic'
           driver_memory:  !Ref 'pDriverMemory'
           executor_memory:  !Ref 'pExecutorMemory'
@@ -604,7 +602,7 @@ Resources:
       Description: Lambda function to create new EMR Cluster and Bootstrap scripts.
       Role: !GetAtt [rLambdaRole, Arn]
       Code:
-        S3Bucket: !Ref 'pLambdaBucket'
+        S3Bucket: !Ref 'pEmrCodeBucket'
         S3Key: lambda.zip
       Runtime: python3.6
       Timeout: 180

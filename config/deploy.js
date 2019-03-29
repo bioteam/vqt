@@ -26,13 +26,13 @@ module.exports = function(deployTarget) {
       parameters: {
         pDomainName: process.env.CFN_DOMAINNAME,
         pCFCertificate: process.env.CFN_CFCERTIFICATE,
-        pEC2KeyName: process.env.AWS_EC2_KEY_NAME,
         pSubnet: process.env.AWS_VPC_SUBNET,
-        pLambdaBucket: process.env.S3_EMR_BUCKET_NAME,
-        pVCFBucket: process.env.S3_VCF_BUCKET_NAME,
-        pParquetBucket: process.env.S3_PARQUET_BUCKET_NAME,
-        pAnnotationsBucket: process.env.S3_CLINVAR_BUCKET_NAME,
+        pEC2KeyName: process.env.AWS_EC2_KEY_NAME,
         pSNSEmailAddress: process.env.AWS_SNS_EMAIL_ADDRESS,
+        pEmrCodeBucket: process.env.S3_EMR_BUCKET_NAME,
+        pVCFBucket: process.env.S3_VCF_BUCKET_NAME,
+        pVariantsBucket: process.env.S3_VARIANTS_BUCKET_NAME,
+        pAnnotationsBucket: process.env.S3_ANNOTATIONS_BUCKET_NAME,
         pGlueDatabase: process.env.ATHENA_DATABASE
       }
     },
