@@ -1,13 +1,13 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Deploy VQT application, and EMR / Glue / Athena backend 
 Parameters:
-  DomainName:
+  pDomainName:
     Description: 'Domain name of the CDN, e.g. assets.example.com'
     Type: String
-  CFCertificate:
+  pCFCertificate:
     Description: 'Existing ACM Certificate ARN for CloudFront. Must be created in the us-east-1 region!'
     Type: String
-  ForceHttps:
+  pForceHttps:
     Type: String
     Description: Force HTTPS by redirecting HTTP requests
     Default: "true"
@@ -111,9 +111,10 @@ Parameters:
     AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
     MinLength: 3
     MaxLength: 63
-  pAnnotationsBucket: # Clinvar annotations bucket location
+  pAnnotationsBucket: # Annotations bucket containing clinvar.parquet
+    Description: Existing S3 bucket to read Clinvar input parquet files
     Type: String
-    Description: New S3 bucket to read Clinvar input files
+    Default: "vqt-annotations"
     AllowedPattern: ^(?!-)[a-z0-9-]*(?<!-)$
     MinLength: 3
     MaxLength: 63
@@ -137,20 +138,8 @@ Parameters:
     MaxLength: 25
     Default: vqt-db
     Description: New Athena Database Name
-  AnnotationsBucket:
-    Description: 'S3 Bucket containing Annotations. Must be readable by Athena!'
-    Type: String
-    Default: 's3://vqt.annotations/'
-  VariantsBucket:
-    Description: 'S3 Bucket containing Variants. Must be readable by Athena!'
-    Type: String
-    Default: 's3://aws-bigdata-blog/artifacts/athena_genomics.parquet'
-  FrequenciesBucket:
-    Description: 'S3 Bucket containing Frquencies. Must be readable by Athena!'
-    Type: String
-    Default: 's3://vqt.frequencies/'
 Conditions:
-  HasForceHttps: !Equals [ !Ref ForceHttps, 'true' ]
+  cHasForceHttps: !Equals [ !Ref pForceHttps, 'true' ]
 Resources:
   IdentityPool: # Create an Identity Pool for authorited/unauthorized users
     Type: 'AWS::Cognito::IdentityPool'
@@ -369,108 +358,6 @@ Resources:
               console.log(err, err.stack);
             });
           };
-  AnnotationsTableQuery: # Annotations Named Query
-    Type: 'AWS::Athena::NamedQuery'
-    Properties:
-      Name: "annotations"
-      Database: !Ref AWS::StackName
-      Description: "Annotations Table Create Statement"
-      QueryString: !Sub >
-                    CREATE EXTERNAL TABLE `annotations`(
-                      `alleleid` string, 
-                      `varianttype` string, 
-                      `hgvsname` string, 
-                      `geneid` string, 
-                      `genesymbol` string, 
-                      `hgncid` string, 
-                      `clinicalsignificance` string, 
-                      `clinsigsimple` string, 
-                      `lastevaluated` string, 
-                      `rsid` string, 
-                      `dbvarid` string, 
-                      `rcvaccession` string, 
-                      `phenotypeids` string, 
-                      `phenotypelist` string, 
-                      `origin` string, 
-                      `originsimple` string, 
-                      `assembly` string, 
-                      `chromosomeaccession` string, 
-                      `chromosome` string, 
-                      `startposition` int, 
-                      `endposition` int, 
-                      `referenceallele` string, 
-                      `alternateallele` string, 
-                      `cytogenetic` string, 
-                      `reviewstatus` string, 
-                      `numbersubmitters` string, 
-                      `guidelines` string, 
-                      `testedingtr` string, 
-                      `otherids` string, 
-                      `submittercategories` string)
-                    ROW FORMAT DELIMITED 
-                      FIELDS TERMINATED BY '\t' 
-                    STORED AS INPUTFORMAT 
-                      'org.apache.hadoop.mapred.TextInputFormat' 
-                    OUTPUTFORMAT 
-                      'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-                    LOCATION
-                      '${AnnotationsBucket}'
-                    TBLPROPERTIES (
-                      'transient_lastDdlTime'='1492716849')
-
-  VariantsTableQuery: # Variants Named Query
-    Type: 'AWS::Athena::NamedQuery'
-    Properties:
-      Name: "variants"
-      Database: !Ref AWS::StackName
-      Description: "Variants Table Create Statement"
-      QueryString: !Sub >
-                        CREATE EXTERNAL TABLE `variants`(
-                          `alternateallele` string, 
-                          `chromosome` string, 
-                          `endposition` bigint, 
-                          `genotype0` string, 
-                          `genotype1` string, 
-                          `referenceallele` string, 
-                          `sampleid` string, 
-                          `startposition` bigint)
-                        ROW FORMAT SERDE 
-                          'org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe' 
-                        STORED AS INPUTFORMAT 
-                          'org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat' 
-                        OUTPUTFORMAT 
-                          'org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat'
-                        LOCATION
-                          '${VariantsBucket}'
-                        TBLPROPERTIES (
-                          'transient_lastDdlTime'='1492716302')
-
-  FrequenciesTableQuery: # Frequencies Named Query
-    Type: 'AWS::Athena::NamedQuery'
-    Properties:
-      Name: "frequencies"
-      Database: !Ref AWS::StackName
-      Description: "Variant Frequencies Table Create Statement"
-      QueryString: !Sub >
-                        CREATE EXTERNAL TABLE `variant_frequencies`(
-                          `chromosome` string, 
-                          `startposition` bigint, 
-                          `endposition` bigint, 
-                          `referenceallele` string, 
-                          `alternateallele` string, 
-                          `frequency` double)
-                        ROW FORMAT DELIMITED 
-                          FIELDS TERMINATED BY ',' 
-                        STORED AS INPUTFORMAT 
-                          'org.apache.hadoop.mapred.TextInputFormat' 
-                        OUTPUTFORMAT 
-                          'org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat'
-                        LOCATION
-                          '${FrequenciesBucket}'
-                        TBLPROPERTIES (
-                          'has_encrypted_data'='false', 
-                          'transient_lastDdlTime'='1497466594')
-
   AssetsBucket: # S3 Bucket for static web site
     Type: 'AWS::S3::Bucket'
     Properties:
@@ -507,16 +394,16 @@ Resources:
         Enabled: true
         HttpVersion: http2
         Aliases:
-          - !Ref DomainName
+          - !Ref pDomainName
         DefaultCacheBehavior:
           ForwardedValues:
             QueryString: false
             Cookies:
               Forward: none
           TargetOriginId: AssetsBucket
-          ViewerProtocolPolicy: !If [HasForceHttps, 'redirect-to-https', 'allow-all']
+          ViewerProtocolPolicy: !If [cHasForceHttps, 'redirect-to-https', 'allow-all']
         ViewerCertificate:
-          AcmCertificateArn: !Ref CFCertificate
+          AcmCertificateArn: !Ref pCFCertificate
           SslSupportMethod: sni-only
         PriceClass: PriceClass_100
         CustomErrorResponses:
