@@ -19,7 +19,7 @@ module.exports = function(deployTarget) {
     cloudformation: {
       accessKeyId: process.env.AWS_KEY,
       secretAccessKey: process.env.AWS_SECRET,
-      region: 'us-east-1',
+      region: process.env.AWS_REGION,
       stackName: `${require('../package.json').name}-${deployTarget}`,
       templateBody: 'file://cfn.yaml',
       capabilities: ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
@@ -42,7 +42,7 @@ module.exports = function(deployTarget) {
       bucket(context) {
         return context.cloudformation.outputs.AssetsBucket;
       },
-      region: 'us-east-1',
+      region: process.env.AWS_REGION,
       filePattern: '*'
     }
   };
