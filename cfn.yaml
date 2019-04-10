@@ -1,12 +1,12 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Deploy VQT application, and EMR / Glue / Athena backend 
 Parameters:
-  pDomainName: # Required
-    Description: 'Existing DNS Domain name of the CDN, e.g. assets.example.com'
-    Type: String
-  pCFCertificate: # Required
-    Description: 'Existing ACM Certificate ARN for CloudFront. Must be created in the us-east-1 region!'
-    Type: String
+  # pDomainName: # Required
+  #   Description: 'Existing DNS Domain name of the CDN, e.g. assets.example.com'
+  #   Type: String
+  # pCFCertificate: # Required
+  #   Description: 'Existing ACM Certificate ARN for CloudFront. Must be created in the us-east-1 region!'
+  #   Type: String
   pForceHttps: # Optional
     Type: String
     Description: Force HTTPS by redirecting HTTP requests
@@ -391,8 +391,8 @@ Resources:
             S3OriginConfig: {}
         Enabled: true
         HttpVersion: http2
-        Aliases:
-          - !Ref pDomainName
+        # Aliases:
+        #   - !Ref pDomainName
         DefaultCacheBehavior:
           ForwardedValues:
             QueryString: false
@@ -400,9 +400,9 @@ Resources:
               Forward: none
           TargetOriginId: AssetsBucket
           ViewerProtocolPolicy: !If [cHasForceHttps, 'redirect-to-https', 'allow-all']
-        ViewerCertificate:
-          AcmCertificateArn: !Ref pCFCertificate
-          SslSupportMethod: sni-only
+        # ViewerCertificate:
+        #   AcmCertificateArn: !Ref pCFCertificate
+        #   SslSupportMethod: sni-only
         PriceClass: PriceClass_100
         CustomErrorResponses:
           - ErrorCode: 404

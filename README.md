@@ -6,8 +6,9 @@ Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 
 ![Serverless](https://raw.githubusercontent.com/bioteam/vqt/assets/serverless.png)
 
-* Developed using the [Ember](https://www.emberjs.com) framework
-* Served from a [static S3 website](https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html)
+* Client-side application developed using the [Ember](https://www.emberjs.com) framework
+* Served from a [static S3 website](https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html) through [CloudFront](https://aws.amazon.com/cloudfront/)
+* VCF files transformed to parquet with [EMR](https://aws.amazon.com/emr/), [Lambda](https://aws.amazon.com/lambda/), [Glue](https://aws.amazon.com/glue/),  [S3](https://aws.amazon.com/s3/), and [ADAM](https://github.com/bigdatagenomics/adam)
 * Queries data through AWS APIs ([Cognito](https://aws.amazon.com/cognito/), [Lambda](https://aws.amazon.com/lambda/), [Athena](https://aws.amazon.com/athena/), [S3](https://aws.amazon.com/s3/))
 
 ## Getting Started
@@ -43,6 +44,18 @@ brew install git node watchman
 ```sh
 npm install -g ember-cli
 ```
+
+#### EC2 Amazon Linux AMI
+
+sudo yum install -y gcc-c++ make
+curl -sL https://rpm.nodesource.com/setup_6.x | sudo -E bash -
+
+1. Install git, node, watchman
+
+```sh
+sudo yum install git nodejs
+```
+sudo npm install -g ember-cli
 
 ## Installation
 

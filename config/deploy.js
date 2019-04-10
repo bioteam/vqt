@@ -24,8 +24,8 @@ module.exports = function(deployTarget) {
       templateBody: 'file://cfn.yaml',
       capabilities: ['CAPABILITY_IAM', 'CAPABILITY_NAMED_IAM'],
       parameters: {
-        pDomainName: process.env.CFN_DOMAINNAME,
-        pCFCertificate: process.env.CFN_CFCERTIFICATE,
+        // pDomainName: process.env.CFN_DOMAINNAME,
+        // pCFCertificate: process.env.CFN_CFCERTIFICATE,
         pSubnet: process.env.AWS_VPC_SUBNET,
         pEC2KeyName: process.env.AWS_EC2_KEY_NAME,
         pSNSEmailAddress: process.env.AWS_SNS_EMAIL_ADDRESS,
