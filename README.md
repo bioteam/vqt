@@ -73,6 +73,22 @@ ATHENA_DATABASE=[Athena Database]
 IDENTITY_POOL_ID=[Identity Pool ID]
 ```
 
+Example:
+
+```sh
+AWS_REGION=us-east-1
+AWS_KEY=AHIAJFNRP47B7LILRC2Q
+AWS_SECRET=8vQyB9sbHZUvpSsRjqvN6n/vRL/FR1aTSSseA391
+AWS_VPC_SUBNET=subnet-748cd3e2
+AWS_EC2_KEY_NAME=my_ec2_key
+AWS_SNS_EMAIL_ADDRESS="me@example.com"
+S3_EMR_BUCKET_NAME="vqt-preexisting-emr-bucket"
+S3_VCF_BUCKET_NAME="vqt-created-vcf-input-bucket"
+S3_VARIANTS_BUCKET_NAME="vqt-created-variants-output-bucket"
+ATHENA_DATABASE="myvqt-db"
+IDENTITY_POOL_ID=us-east-1:236b09f5-8702-43f9-1408-dad3aa4afcb4
+```
+
 ### 4. Deploy on AWS
 
 Upload the lambda function and EMR payload to your S3_EMR_BUCKET_NAME
