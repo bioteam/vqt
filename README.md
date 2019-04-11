@@ -92,14 +92,20 @@ IDENTITY_POOL_ID=us-east-1:236b09f5-8702-43f9-1408-dad3aa4afcb4
 ### 4. Deploy on AWS
 
 Upload the lambda function and EMR payload to your S3_EMR_BUCKET_NAME
+
 ```sh
 aws s3 cp emr_adam/lambda.zip s3://my-emr-bucket/
 aws s3 cp emr_adam/jboot2.tar s3://my-emr-bucket/
 ```
 Deploy web application and CloudFormation stack
+
+Note: This takes 10-15 minutes to complete when executed the first time. This is normal behavior. The CloudFront distribution step is the slow step. Subsequent updates execute quickly.
 ```sh
 ember production deploy
 ```
+### 5. Outstanding Issue
+
+The web application is deployed before the IDENTITY_POOL_ID is created. The present workaround is to update IDENTITY_POOL_ID created in **.env** after the CloudFormation stack has completed, and then deploy a second time.
 
 ## Adding Variants
 
