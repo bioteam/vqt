@@ -15,7 +15,7 @@ Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 
 Install prerequisite software, if needed.
 
-### OS X
+### on OS X
 
 brew, git, watchman, node, ember-cli
 
@@ -31,7 +31,7 @@ Install ember-cli
 ```sh
 npm install -g ember-cli
 ```
-### AWS Linux AMI
+### on AWS Linux AMI
 
 git, nodejs, ember-cli, node-sass
 
@@ -49,11 +49,12 @@ Install node-sass
 npm install node-sass
 ```
 
-Clone code
+### Clone and Install npm modules
 
 ```sh
 git clone https://github.com/bioteam/vqt.git
 cd vqt
+npm install
 ```
 
 ## Getting Started
