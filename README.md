@@ -53,6 +53,7 @@ cp .template.env .env
 ```
 
 Modify **.env** for *your* AWS account.
+
 Note:
 
 * S3_EMR_BUCKET_NAME and S3_ANNOTATIONS_BUCKET_NAME **must** already exist
