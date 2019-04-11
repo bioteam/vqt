@@ -1,15 +1,15 @@
 # vqt (Variant Query Tool)
 
-vqt is a server-less, client-side javascript application that provides a Web UI for querying variants stored on [AWS](https://aws.amazon.com) [S3](https://aws.amazon.com/s3/).
+Variant Query Tool (vqt) is a server-less client-side web application and CloudFormation stack providing a UI to querying variants stored on [AWS](https://aws.amazon.com) [S3](https://aws.amazon.com/s3/).
 
 Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 
 ![Serverless](https://raw.githubusercontent.com/bioteam/vqt/assets/serverless.png)
 
-* Client-side application developed using the [Ember](https://www.emberjs.com) framework
+* Client-side web application developed using the [Ember](https://www.emberjs.com) framework
 * Served from a [static S3 website](https://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteHosting.html) through [CloudFront](https://aws.amazon.com/cloudfront/)
-* VCF files transformed to parquet with [EMR](https://aws.amazon.com/emr/), [Lambda](https://aws.amazon.com/lambda/), [Glue](https://aws.amazon.com/glue/),  [S3](https://aws.amazon.com/s3/), and [ADAM](https://github.com/bigdatagenomics/adam)
-* Queries data through AWS APIs ([Cognito](https://aws.amazon.com/cognito/), [Lambda](https://aws.amazon.com/lambda/), [Athena](https://aws.amazon.com/athena/), [S3](https://aws.amazon.com/s3/))
+* Event triggered transformation of VCF files to parquet with [Lambda](https://aws.amazon.com/lambda/), [EMR](https://aws.amazon.com/emr/), and [ADAM](https://github.com/bigdatagenomics/adam)
+* VCF files queried through AWS APIs ([Cognito](https://aws.amazon.com/cognito/), [Lambda](https://aws.amazon.com/lambda/), [Glue](https://aws.amazon.com/glue/), [Athena](https://aws.amazon.com/athena/), [S3](https://aws.amazon.com/s3/))
 
 ## Getting Started
 
