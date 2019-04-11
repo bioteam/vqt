@@ -56,7 +56,7 @@ Modify **.env** for *your* AWS account.
 
 Note:
 
-* S3_EMR_BUCKET_NAME and S3_ANNOTATIONS_BUCKET_NAME **must already exist**
+* S3_EMR_BUCKET_NAME **must already exist**
 * S3_VCF_BUCKET_NAME and S3_VARIANTS_BUCKET_NAME **must not already exist**
 
 ```sh
@@ -69,7 +69,6 @@ AWS_SNS_EMAIL_ADDRESS=[SNS Notification Email]
 S3_EMR_BUCKET_NAME=[EMR ADAM Code Bucket]
 S3_VCF_BUCKET_NAME=[VCF Input Bucket]
 S3_VARIANTS_BUCKET_NAME=[Parquet Output Bucket]
-S3_ANNOTATIONS_BUCKET_NAME=[Clinvar Annotations Input Bucket]
 ATHENA_DATABASE=[Athena Database]
 IDENTITY_POOL_ID=[Identity Pool ID]
 ```

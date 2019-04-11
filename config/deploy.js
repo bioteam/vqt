@@ -33,7 +33,8 @@ module.exports = function(deployTarget) {
         pEmrCodeBucket: process.env.S3_EMR_BUCKET_NAME,
         pVCFBucket: process.env.S3_VCF_BUCKET_NAME,
         pVariantsBucket: process.env.S3_VARIANTS_BUCKET_NAME,
-        pAnnotationsBucket: process.env.S3_ANNOTATIONS_BUCKET_NAME,
+        // Uncomment to use your own annotations
+        // pAnnotationsBucket: process.env.S3_ANNOTATIONS_BUCKET_NAME,
         pGlueDatabase: process.env.ATHENA_DATABASE
       }
     },
