@@ -56,6 +56,8 @@ curl -sL https://rpm.nodesource.com/setup_6.x | sudo -E bash -
 sudo yum install git nodejs
 ```
 sudo npm install -g ember-cli
+npm install node-sass
+ember deploy production
 
 ## Installation
 
@@ -66,6 +68,14 @@ sudo npm install -g ember-cli
 * Populate .env with values from [Cognito](https://github.com/bioteam/vqt/wiki/Configure-Cognito,-IAM,-and-Lambda) and [CloudFront](https://github.com/bioteam/vqt/wiki/Configure-CloudFront)
 * `ember server`
 * `open http://localhost:4200`
+
+npm install node-sass
+ember deploy production
+
+aws s3 mb s3://vqt-test-emr-bucket
+aws s3 cp backend/emr/lambda.zip s3://VQTLambdaBucket
+aws s3 cp backend/emr/jboot2.tar s3://VQTLambdaBucket
+npm install node-sass
 
 ## Running the tests
 

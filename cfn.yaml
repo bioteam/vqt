@@ -1,6 +1,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: Deploy VQT application, and EMR / Glue / Athena backend 
 Parameters:
+  # Uncomment for use with your own domain and SSL cert
   # pDomainName: # Required
   #   Description: 'Existing DNS Domain name of the CDN, e.g. assets.example.com'
   #   Type: String
@@ -391,6 +392,7 @@ Resources:
             S3OriginConfig: {}
         Enabled: true
         HttpVersion: http2
+        # Uncomment for use with your own domain and SSL cert
         # Aliases:
         #   - !Ref pDomainName
         DefaultCacheBehavior:
@@ -400,6 +402,7 @@ Resources:
               Forward: none
           TargetOriginId: AssetsBucket
           ViewerProtocolPolicy: !If [cHasForceHttps, 'redirect-to-https', 'allow-all']
+        # Uncomment for use with your own domain and SSL cert
         # ViewerCertificate:
         #   AcmCertificateArn: !Ref pCFCertificate
         #   SslSupportMethod: sni-only
