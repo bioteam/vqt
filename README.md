@@ -18,7 +18,7 @@ Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 3. Configure AWS Deployment
 4. Deploy on AWS
 
-### 1. Install prerequisite software
+### 1. Install prerequisite software (if needed)
 
 #### On OS X
 Install [brew](https://brew.sh), git, watchman, node, ember-cli
@@ -28,8 +28,10 @@ brew install git node watchman
 npm install -g ember-cli
 ```
 #### On AWS Linux AMI
-Install git, nodejs, ember-cli, node-sass
+Install gcc-c++, make, git, nodejs, ember-cli, node-sass
 ```sh
+sudo yum install -y gcc-c++ make
+curl -sL https://rpm.nodesource.com/setup_6.x | sudo -E bash -
 sudo yum install git nodejs
 sudo npm install -g ember-cli
 npm install node-sass
@@ -42,6 +44,25 @@ git clone https://github.com/bioteam/vqt.git
 cd vqt
 npm install
 ```
+
+### 3. Configure AWS Deployment
+
+```sh
+cp .template.env .env
+```
+AWS_REGION=[AWS Region]
+AWS_KEY=[Access Key ID]
+AWS_SECRET=[Secret Access Key]
+AWS_VPC_SUBNET=[VPC Subnet]
+AWS_EC2_KEY_NAME=[EC2 Key]
+
+AWS_SNS_EMAIL_ADDRESS=[SNS Email]
+S3_EMR_BUCKET_NAME=[EMR ADAM Code Bucket]
+S3_VCF_BUCKET_NAME=[VCF Input Bucket]
+S3_VARIANTS_BUCKET_NAME=[Parquet Output Bucket]
+S3_ANNOTATIONS_BUCKET_NAME=[Clinvar Annotations Input Bucket]
+ATHENA_DATABASE=[Athena Database]
+IDENTITY_POOL_ID=[Identity Pool ID]
 
 ## Getting Started
 
