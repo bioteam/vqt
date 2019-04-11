@@ -11,6 +11,37 @@ Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 * Event triggered transformation of VCF files to parquet with [Lambda](https://aws.amazon.com/lambda/), [EMR](https://aws.amazon.com/emr/), and [ADAM](https://github.com/bigdatagenomics/adam)
 * VCF files queried through AWS APIs ([Cognito](https://aws.amazon.com/cognito/), [Lambda](https://aws.amazon.com/lambda/), [Glue](https://aws.amazon.com/glue/), [Athena](https://aws.amazon.com/athena/), [S3](https://aws.amazon.com/s3/))
 
+## Installation
+
+Install prerequisites (if needed): brew, git, watchman, node, ember-cli.
+
+#### OS X
+
+Install [homebrew](https://brew.sh)
+
+```sh
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
+
+Install git, node, watchman
+
+```sh
+brew install git node watchman
+```
+
+Install ember-cli
+
+```sh
+npm install -g ember-cli
+```
+
+Clone code
+
+```sh
+git clone https://github.com/bioteam/vqt.git
+cd vqt
+```
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See [Deployment](#deployment) for notes on how to deploy the project on [S3](https://aws.amazon.com/s3/).
