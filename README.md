@@ -47,22 +47,31 @@ npm install
 
 ### 3. Configure AWS Deployment
 
+Copy the provided template to **.env**
 ```sh
 cp .template.env .env
 ```
+
+Modify **.env** for *your* AWS account.
+Note:
+
+* S3_EMR_BUCKET_NAME and S3_ANNOTATIONS_BUCKET_NAME **must** already exist
+* S3_VCF_BUCKET_NAME and S3_VARIANTS_BUCKET_NAME **must not** already exist
+
+```sh
 AWS_REGION=[AWS Region]
 AWS_KEY=[Access Key ID]
 AWS_SECRET=[Secret Access Key]
 AWS_VPC_SUBNET=[VPC Subnet]
 AWS_EC2_KEY_NAME=[EC2 Key]
-
-AWS_SNS_EMAIL_ADDRESS=[SNS Email]
+AWS_SNS_EMAIL_ADDRESS=[SNS Notification Email]
 S3_EMR_BUCKET_NAME=[EMR ADAM Code Bucket]
 S3_VCF_BUCKET_NAME=[VCF Input Bucket]
 S3_VARIANTS_BUCKET_NAME=[Parquet Output Bucket]
 S3_ANNOTATIONS_BUCKET_NAME=[Clinvar Annotations Input Bucket]
 ATHENA_DATABASE=[Athena Database]
 IDENTITY_POOL_ID=[Identity Pool ID]
+```
 
 ## Getting Started
 
