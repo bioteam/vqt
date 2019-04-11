@@ -13,43 +13,29 @@ Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 
 ## Installation
 
-Install prerequisite software, if needed.
+1. Install prerequisite software (if needed)
+2. Clone vqt repository and install node modules
+3. Configure AWS Deployment
+4. Deploy on AWS
 
-### on OS X
+### 1. Install prerequisite software
 
-brew, git, watchman, node, ember-cli
-
-Install [homebrew](https://brew.sh)
+#### On OS X
+Install [brew](https://brew.sh), git, watchman, node, ember-cli
 ```sh
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-```
-Install git, node, watchman
-```sh
 brew install git node watchman
-```
-Install ember-cli
-```sh
 npm install -g ember-cli
 ```
-### on AWS Linux AMI
-
-git, nodejs, ember-cli, node-sass
-
-Install git, nodejs
+#### On AWS Linux AMI
+Install git, nodejs, ember-cli, node-sass
 ```sh
 sudo yum install git nodejs
-```
-Install ember-cli
-```sh
 sudo npm install -g ember-cli
-```
-Install node-sass
-
-```sh
 npm install node-sass
 ```
 
-### Clone and Install npm modules
+### 2. Clone vqt repository and install node modules
 
 ```sh
 git clone https://github.com/bioteam/vqt.git
