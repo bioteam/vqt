@@ -13,26 +13,40 @@ Live Demo: [http://vqt.bioteam.net](http://vqt.bioteam.net)
 
 ## Installation
 
-Install prerequisites (if needed): brew, git, watchman, node, ember-cli.
+Install prerequisite software, if needed.
 
-#### OS X
+### OS X
+
+brew, git, watchman, node, ember-cli
 
 Install [homebrew](https://brew.sh)
-
 ```sh
 /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 ```
-
 Install git, node, watchman
-
 ```sh
 brew install git node watchman
 ```
-
 Install ember-cli
-
 ```sh
 npm install -g ember-cli
+```
+### AWS Linux AMI
+
+git, nodejs, ember-cli, node-sass
+
+Install git, nodejs
+```sh
+sudo yum install git nodejs
+```
+Install ember-cli
+```sh
+sudo npm install -g ember-cli
+```
+Install node-sass
+
+```sh
+npm install node-sass
 ```
 
 Clone code
