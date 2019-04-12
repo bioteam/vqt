@@ -41,7 +41,7 @@ return "WITH" +
 "  annotation.attributes['CLINSIG'] as clinicalsignificance," +
 "  SPLIT(annotation.attributes['GENEINFO'], ':')[1] as genesymbol," +
 "  CAST(annotation.attributes['AF_EXAC'] AS DECIMAL(18, 4)) as frequency," +
-"  annotation.attributes['CLNDN'] as phenotypelist" +
+"  REPLACE(annotation.attributes['CLNDN'], '_', ' ') as phenotypelist" +
 " FROM annotations" +
 " )" +
 "SELECT" +
