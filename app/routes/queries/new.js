@@ -42,14 +42,12 @@ export default Route.extend({
           if (err) {
             alert(err);
           } else {
-            console.log(data);
-            console.log(JSON.parse(data.Payload));
             if (JSON.parse(data.Payload).ResultSet) {
               let txt = '<table class="table">';
               var rows = JSON.parse(data.Payload).ResultSet.Rows;
               var x;
               txt += '<thead><tr>';
-              txt += '<th>#</th><th>Sample</th><th>Variant</th><th>Genotype</th><th>dbSNP</th><th>Pathogenicity</th><th>Gene</th><th>Phenotype</th><th>Frequency</th>';
+              txt += '<th>#</th><th>Sample</th><th>Variant</th><th>Genotype</th><th>dbSNP</th><th>Pathogenicity</th><th>Gene</th><th>Frequency</th><th>Phenotype</th>';
               txt += '</tr></thead>';
               for (x = 1; x < rows.length; x++) {
                 let columns = rows[x].Data;
@@ -57,10 +55,10 @@ export default Route.extend({
                 let ucsc_reqion = columns[1].VarCharValue + ':' + columns[2].VarCharValue + '-' + columns[3].VarCharValue;
                 let ucsc_link = '<a href="http://genome.ucsc.edu/cgi-bin/hgTracks?db=hg19&position=chr' + ucsc_reqion + '" target="_blank">' + variant + '</a>';
                 let genotype = columns[6].VarCharValue + ',' + columns[7].VarCharValue;
-                let frequency = parseFloat(columns[12].VarCharValue).toFixed(4);
+                let frequency = parseFloat(columns[11].VarCharValue).toFixed(4);
                 let dbsnp_link = '<a href="https://www.ncbi.nlm.nih.gov/projects/SNP/snp_ref.cgi?rs=' + columns[8].VarCharValue + '" target="_blank">' + columns[8].VarCharValue + '</a>';
                 let ncbi_link = '<a href="http://www.ncbi.nlm.nih.gov/gene/?term=' + columns[10].VarCharValue + '[sym] AND human[ORGN] AND srcdb_refseq[PROP]" target="_blank">' + columns[10].VarCharValue + '</a>';
-                txt += '<tr scope="row"><td>' + x + '</td><td>' + columns[0].VarCharValue + '</td><td>' + ucsc_link + '</td><td>' + genotype + '</td><td>' + dbsnp_link + '</td><td>' + columns[9].VarCharValue + '</td><td>' + ncbi_link + '</td><td>' + columns[11].VarCharValue + '</td><td>' + frequency + '</td></tr>';
+                txt += '<tr scope="row"><td>' + x + '</td><td>' + columns[0].VarCharValue + '</td><td>' + ucsc_link + '</td><td>' + genotype + '</td><td>' + dbsnp_link + '</td><td>' + columns[9].VarCharValue + '</td><td>' + ncbi_link + '</td><td>' + frequency + '</td><td>' + columns[12].VarCharValue + '</td></tr>';
               }
               document.getElementById("query-results").innerHTML = txt;
             } else {

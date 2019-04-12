@@ -236,6 +236,19 @@ Resources:
               - "sts:AssumeRole"
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonAthenaFullAccess
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        # Don't like this
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      Policies:
+        - PolicyName: QueryResultsAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:*"
+                  - "s3:PutObject"
+                Resource: !Sub "${AthenaQueryResultsBucket.Arn}/*"
   AthenaLambdaFunction: # Create a lambda function executable by the lambda role
     Type: "AWS::Lambda::Function"
     Properties:
@@ -331,7 +344,7 @@ Resources:
               // QueryString: query,
               QueryString: event.query,
               ResultConfiguration: {
-                OutputLocation: 's3://${pVariantsBucket}',
+                OutputLocation: 's3://${AthenaQueryResultsBucket}',
                 EncryptionConfiguration: {
                   EncryptionOption: 'SSE_S3'
                 }

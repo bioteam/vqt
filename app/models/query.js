@@ -40,8 +40,8 @@ return "WITH" +
 "  annotation.attributes['RS'] as rsid," +
 "  annotation.attributes['CLINSIG'] as clinicalsignificance," +
 "  SPLIT(annotation.attributes['GENEINFO'], ':')[1] as genesymbol," +
-"  annotation.attributes['CLNDISDB'] as phenotypelist," +
-"  annotation.attributes['AF_EXAC'] as frequency" +
+"  CAST(annotation.attributes['AF_EXAC'] AS DECIMAL(18, 4)) as frequency," +
+"  annotation.attributes['CLNDN'] as phenotypelist" +
 " FROM annotations" +
 " )" +
 "SELECT" +
@@ -56,8 +56,8 @@ return "WITH" +
 "  a.rsid," +
 "  a.clinicalsignificance," +
 "  a.genesymbol," +
-"  a.phenotypelist," +
-"  a.frequency" +
+"  a.frequency," +
+"  a.phenotypelist" +
 " FROM v" +
 " JOIN a" +
 "  ON v.chromosome = a.chromosome" +
