@@ -253,7 +253,7 @@ Resources:
               apiVersion: '2017-05-18'
           });
 
-          var MAX_RETRIES = 20;
+          var MAX_RETRIES = 30;
           var POLLING_INTERVAL = 1000;
           var RESOLVE_STATES = ['SUCCEEDED', 'FAILED', 'CANCELLED'];
 
@@ -331,13 +331,13 @@ Resources:
               // QueryString: query,
               QueryString: event.query,
               ResultConfiguration: {
-                OutputLocation: !Ref ResultsBucket,
+                OutputLocation: 's3://${pVariantsBucket}',
                 EncryptionConfiguration: {
                   EncryptionOption: 'SSE_S3'
                 }
               },
               QueryExecutionContext: {
-                Database: '${AWS::StackName}'
+                Database: '${pGlueDatabase}'
               }
             };
             var queryId;

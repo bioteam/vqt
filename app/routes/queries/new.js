@@ -42,6 +42,7 @@ export default Route.extend({
           if (err) {
             alert(err);
           } else {
+            console.log(data);
             console.log(JSON.parse(data.Payload));
             if (JSON.parse(data.Payload).ResultSet) {
               let txt = '<table class="table">';
