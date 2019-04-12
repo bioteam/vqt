@@ -122,6 +122,7 @@ For rapid development, after installing the prerequisite software (above), you c
 ### Launch a local server
 ```sh
 ember server
+open http://localhost:4200
 ```
 
 ### Perform tests from a web browser
