@@ -59,7 +59,7 @@
     "emberx-select": "^3.1.1",
     "eslint-plugin-ember": "^5.2.0",
     "loader.js": "^4.7.0",
-    "merge": ">=1.2.1",
+    "merge": ">=2.1.1",
     "popper.js": "^1.14.4",
     "qunit-dom": "^0.8.3"
   },
